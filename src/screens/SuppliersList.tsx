@@ -55,7 +55,7 @@ const SuppliersList = ({navigation, route}: {navigation: any; route: any}) => {
           imageStyle={styles.image}
         />
         <View style={styles.cardDescription}>
-          <Text style={styles.title}>{item?.companyName}</Text>
+          <Text style={styles.title}>{item?.businessName}</Text>
           <Text style={styles.available}>2.2 Kms | 20 mins</Text>
           <View style={{flexDirection: 'row', alignItems: 'center', gap: 5}}>
             <SVGStarIcon />
@@ -105,7 +105,7 @@ const SuppliersList = ({navigation, route}: {navigation: any; route: any}) => {
           <Pressable onPress={() => navigation.goBack()}>
             <Feather name="arrow-left" size={25} color={colors.white} />
           </Pressable>
-          <View style={styles.searchWrapper}>
+          {/* <View style={styles.searchWrapper}>
             <SVGSearch />
             <TextInput
               placeholder="Search for items or supplier"
@@ -113,7 +113,7 @@ const SuppliersList = ({navigation, route}: {navigation: any; route: any}) => {
             />
           </View>
 
-          <Feather name="bell" size={32} color={colors.white} />
+          <Feather name="bell" size={32} color={colors.white} /> */}
         </View>
       </View>
     );

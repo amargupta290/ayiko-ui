@@ -3,11 +3,7 @@ import {useTheme} from '@react-navigation/native';
 import {
   AppImages,
   BlueDot,
-  Group593,
-  Group594,
   SVGLoader,
-  SVGBurger,
-  SVGNotification,
   SVGOfferIcon,
   SVGBorderedCircleIcon,
   SVGBrokenBar,
@@ -16,16 +12,14 @@ import {FButton, ImageComp, Loader} from 'components';
 import React, {useEffect, useState} from 'react';
 import {
   ActivityIndicator,
-  Alert,
-  FlatList,
   Image,
   Modal,
-  Pressable,
   SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
@@ -34,13 +28,11 @@ import {useAppSelector} from 'hooks';
 import {
   checkPaymentStatus,
   getCartDetails,
-  getLocalCart,
   sendForApproval,
-  setCarItem,
 } from 'store/slices/CartSlice';
 import {useDispatch} from 'react-redux';
 import {getCustomerByToken, getSupplier} from 'store/slices/authSlice';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import LocationHeader from 'components/LocationHeader';
 
 const OrderDetail = ({navigation, route}: {navigation: any; route: any}) => {
   const {colors, fonts} = useTheme();
@@ -57,12 +49,14 @@ const OrderDetail = ({navigation, route}: {navigation: any; route: any}) => {
   const [address, setAddress] = useState(
     'Behind ganesh temple, New Sangvi, Pune, 411029',
   );
+  const [preRender, setPreRender] = useState(true);
   const status = [
     'Send Request',
     'Request Sent Succesfully',
     'Waiting For Supplier Approval',
     'Payment Pending',
     'Payment  Confirmed',
+    'Order Placed',
   ];
 
   const {sendForApprovalData, loading, cartDetailsData} = useAppSelector(
@@ -76,7 +70,6 @@ const OrderDetail = ({navigation, route}: {navigation: any; route: any}) => {
   useEffect(() => {
     if (route?.params?.id && (!cartId || cartId !== route?.params?.id))
       setCartId(route?.params?.id);
-
     return intervalId && clearInterval(intervalId);
   }, [navigation, cartId, route?.params?.id]);
 
@@ -90,7 +83,7 @@ const OrderDetail = ({navigation, route}: {navigation: any; route: any}) => {
 
   useEffect(() => {
     const didFocus = navigation.addListener('focus', () => {
-      getCartData();
+      // getCartData();
       if (cartData && !supplierData) {
         dispatch(getSupplier(cartData?.supplierId));
       }
@@ -144,26 +137,29 @@ const OrderDetail = ({navigation, route}: {navigation: any; route: any}) => {
   }
 
   const getCartData = async () => {
-    const checkCarData = await getLocalCart();
+    // const checkCarData = await getLocalCart();
     if (cartDetailsData) {
       setCartData(await transformData(cartDetailsData));
       setEmptyCartVisible(false);
-    } else {
-      if (checkCarData) {
-        setCartData(checkCarData);
-        setEmptyCartVisible(false);
-      } else {
-        setCartData(null);
-        setEmptyCartVisible(true);
-      }
     }
+    // } else {
+    //   if (checkCarData) {
+    //     setCartData(checkCarData);
+    //     setEmptyCartVisible(false);
+    //   } else {
+    //     setCartData(null);
+    //     setEmptyCartVisible(true);
+    //   }
+    // }
   };
 
   useEffect(() => {
     if (cartDetailsData) {
+      if (cartDetailsData?.paymentDetails?.supplierStatus === 'CONFIRMED') {
+        setPaymentModal(false);
+      }
       getCartData();
     }
-
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cartDetailsData]);
 
@@ -176,10 +172,7 @@ const OrderDetail = ({navigation, route}: {navigation: any; route: any}) => {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      if (
-        cartId &&
-        (sendForApprovalData || cartDetailsData?.status !== 'REJECTED')
-      ) {
+      if (cartId && cartDetailsData?.status !== 'REJECTED') {
         dispatch(getCartDetails(sendForApprovalData?.id ?? cartId));
         console.log('HOLA 111111');
       } else {
@@ -190,13 +183,6 @@ const OrderDetail = ({navigation, route}: {navigation: any; route: any}) => {
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  console.log(
-    'sendForApprovalData?.id',
-    JSON.stringify(cartData, null, 2),
-    JSON.stringify(cartDetailsData, null, 2),
-    route?.params?.id,
-  );
 
   const handleRequestApproval = (cartData: any) => {
     let products = Object.values(cartData?.items ?? {})?.map((item: any) => {
@@ -219,8 +205,14 @@ const OrderDetail = ({navigation, route}: {navigation: any; route: any}) => {
     return (
       <View style={styles.orderItemsCard}>
         <View style={[styles.row, styles.upperCardHeader]}>
-          <Text style={styles.headingText}>Items Added</Text>
+          <Text style={styles.title}>
+            Cart Id: <Text style={styles.title}>{cartId}</Text>{' '}
+          </Text>
         </View>
+        <View style={[styles.row, styles.upperCardHeader]}>
+          <Text style={styles.headingText}>Items</Text>
+        </View>
+
         <View style={styles.orderItemContainer}>
           {Object.values(cartData?.items)?.map((item: any, i) => {
             return (
@@ -230,7 +222,11 @@ const OrderDetail = ({navigation, route}: {navigation: any; route: any}) => {
                     <Image
                       source={
                         item?.imageUrl?.length
-                          ? {uri: item?.imageUrl[0]}
+                          ? {
+                              uri:
+                                item?.imageUrl[0]?.imageUrl ??
+                                AppImages.noImg.source,
+                            }
                           : AppImages.noImg.source
                       }
                       style={styles.orderItemImage}
@@ -250,20 +246,22 @@ const OrderDetail = ({navigation, route}: {navigation: any; route: any}) => {
                 <View style={styles.orderItemQty}>
                   <TouchableOpacity
                     onPress={async () => {
-                      await setCarItem(item, null, item.quantity, getCartData);
-                      getCartData();
+                      // await setCarItem(item, null, item.quantity, getCartData);
+                      // getCartData();
                     }}
-                    disabled={cartDetailsData?.status || item.quantity <= 0}>
+                    disabled={
+                      !!cartDetailsData?.status || !!(item.quantity <= 0)
+                    }>
                     <Feather name="minus" size={16} color={colors.black} />
                   </TouchableOpacity>
 
                   <Text style={styles.quantity}> {item?.quantity}</Text>
                   <TouchableOpacity
                     onPress={async () => {
-                      await setCarItem(item, 'add', item.quantity, getCartData);
-                      getCartData();
+                      // await setCarItem(item, 'add', item.quantity, getCartData);
+                      // getCartData();
                     }}
-                    disabled={cartDetailsData?.status}>
+                    disabled={!!cartDetailsData?.status}>
                     <Feather name="plus" size={16} color={colors.black} />
                   </TouchableOpacity>
                 </View>
@@ -349,8 +347,10 @@ const OrderDetail = ({navigation, route}: {navigation: any; route: any}) => {
 
   const header = () => {
     return (
-      <View style={styles.headerContainer}>
-        <TouchableOpacity
+      <>
+        <LocationHeader navigation={navigation} />
+        <View style={styles.headerContainer}>
+          {/* <TouchableOpacity
           style={styles.locationContainer}
           onPress={() => navigation.navigate('AddressScreen')}>
           <View style={styles.locationheader}>
@@ -363,15 +363,16 @@ const OrderDetail = ({navigation, route}: {navigation: any; route: any}) => {
           <Text style={styles.locationText} numberOfLines={1}>
             {address}
           </Text>
-        </TouchableOpacity>
-      </View>
+        </TouchableOpacity> */}
+        </View>
+      </>
     );
   };
 
   const renderSendRequestView = () => {
     return (
       <View>
-        <Text>Send Request to supplier to check availability</Text>
+        <Text>Order Status</Text>
         <TouchableOpacity onPress={() => setModalVisible(!modalVisible)}>
           <View style={styles.sendRequestButton}>
             <Text style={styles.buttonText}>Send Request</Text>
@@ -422,33 +423,41 @@ const OrderDetail = ({navigation, route}: {navigation: any; route: any}) => {
   };
 
   const renderApprovedRequestView = () => {
+    console.log(
+      'renderApprovedRequestView cartDetailsData',
+      cartDetailsData?.status === 'ACCEPTED' &&
+        cartDetailsData?.paymentDetails?.supplierStatus === 'CONFIRMED',
+    );
     return (
       <View>
-        <Text style={styles.title}>
-          Send Request to supplier to check availability
-        </Text>
+        <Text style={styles.title}>Order status</Text>
         <View style={{marginTop: 20}}>
           {cartDetailsData?.status === 'PENDING'
             ? renderStatusBar({color: 'black', i: 1})
             : !cartDetailsData && sendRequest
             ? renderStatusBar({color: 'black', i: 0})
             : cartDetailsData?.status === 'ACCEPTED' &&
-              renderStatusBar({color: 'black', i: 2})}
+              cartDetailsData?.paymentDetails?.supplierStatus !== 'CONFIRMED'
+            ? renderStatusBar({color: 'black', i: 2})
+            : cartDetailsData?.status === 'ACCEPTED' &&
+              cartDetailsData?.paymentDetails?.supplierStatus === 'CONFIRMED' &&
+              renderStatusBar({color: 'black', i: 6})}
         </View>
-        {cartDetailsData?.status === 'ACCEPTED' && (
-          <View style={{padding: 10}}>
-            <Text style={styles.title}>Supplier Payment Details: </Text>
-            <Text>
-              Account No.: {cartDetailsData?.supplier?.bankAccountNumber}
-            </Text>
-            <Text>
-              Mobile Money No.: {cartDetailsData?.supplier?.mobileMoneyNumber}
-            </Text>
-            <Text style={styles.title}>
-              For confirm payment status please press place order button
-            </Text>
-          </View>
-        )}
+        {cartDetailsData?.status === 'ACCEPTED' &&
+          cartDetailsData?.paymentDetails?.supplierStatus !== 'CONFIRMED' && (
+            <View style={{padding: 10}}>
+              <Text style={styles.title}>Supplier Payment Details: </Text>
+              <Text>
+                Account No.: {cartDetailsData?.supplier?.bankAccountNumber}
+              </Text>
+              <Text>
+                Mobile Money No.: {cartDetailsData?.supplier?.mobileMoneyNumber}
+              </Text>
+              <Text style={styles.title}>
+                After payment processing click on Place Order
+              </Text>
+            </View>
+          )}
       </View>
     );
   };
@@ -540,21 +549,46 @@ const OrderDetail = ({navigation, route}: {navigation: any; route: any}) => {
           transparent={true}
           visible={paymentModal}
           onRequestClose={() => {
-            // Alert.alert('Modal has been closed.');
-            setPaymentModal(!paymentModal);
+            setPaymentModal(false);
           }}>
-          <View style={styles.centeredView}>
-            <View style={styles.modalView}>
-              <SVGLoader />
-              <Text style={styles.headingText}>Payment Confirmation</Text>
-              <Text style={styles.modalDescriptionText}>
-                <BlueDot />{' '}
-                <Text style={styles.modalDescriptionText}>
-                  Waiting for supplier’s payment confirmation
-                </Text>
-              </Text>
+          <TouchableWithoutFeedback onPress={() => setPaymentModal(false)}>
+            <View style={styles.centeredView}>
+              {preRender ? (
+                <View style={styles.modalView}>
+                  {/* <SVGLoader /> */}
+                  <Text style={styles.headingText}>Are you sure</Text>
+                  <View style={styles.buttonContainer}>
+                    <TouchableOpacity
+                      style={styles.button}
+                      onPress={() => {
+                        setPreRender(false);
+                        dispatch(checkPaymentStatus({id: cartDetailsData?.id}));
+                      }}>
+                      <Text style={styles.buttonText}>Yes</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.button}
+                      onPress={() => {
+                        setPaymentModal(false);
+                      }}>
+                      <Text style={styles.buttonText}>No</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.modalView}>
+                  <SVGLoader />
+                  <Text style={styles.headingText}>Payment Confirmation</Text>
+                  <Text style={styles.modalDescriptionText}>
+                    <BlueDot />{' '}
+                    <Text style={styles.modalDescriptionText}>
+                      Waiting for supplier’s payment confirmation
+                    </Text>
+                  </Text>
+                </View>
+              )}
             </View>
-          </View>
+          </TouchableWithoutFeedback>
         </Modal>
       </View>
     );
@@ -563,41 +597,48 @@ const OrderDetail = ({navigation, route}: {navigation: any; route: any}) => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <Loader isLoading={loading} />
-      <ScrollView style={styles.content}>
+      <ScrollView style={styles.scroll}>
         {header()}
-        {/* {orderDetailCard()} */}
-        {cartData && (
-          <>
-            {renderOrderItem()}
-            {!cartDetailsData
-              ? renderSendRequestView()
-              : renderApprovedRequestView()}
-            {orderCalculationCard()}
-            {
-              <View>
-                <FButton
-                  label="Place Order"
-                  buttonClick={() => {
-                    dispatch(checkPaymentStatus({id: cartDetailsData?.id}));
-                    setPaymentModal(true);
-                  }}
-                  disabled={cartDetailsData?.status !== 'ACCEPTED'}
-                  containerStyle={{
-                    ...styles.footerBtnContainer,
-                    backgroundColor:
-                      cartDetailsData?.status === 'ACCEPTED'
-                        ? colors.primary
-                        : colors.subHeading,
-                  }}
-                />
-              </View>
-            }
-            {renderModal()}
-            {renderPaymentStatusModal()}
-          </>
-        )}
-        {renderNoItemInCartModal()}
-        {/* {renderRequestAction()} */}
+        <View style={styles.content}>
+          {/* {orderDetailCard()} */}
+          {cartData && (
+            <>
+              {renderOrderItem()}
+              {!cartDetailsData
+                ? renderSendRequestView()
+                : renderApprovedRequestView()}
+              {orderCalculationCard()}
+              {
+                <View>
+                  {cartDetailsData?.status === 'ACCEPTED' &&
+                    cartDetailsData?.paymentDetails?.customerStatus !=
+                      'CONFIRMED' && (
+                      <FButton
+                        label="Place Order"
+                        buttonClick={() => {
+                          setPreRender(true);
+
+                          setPaymentModal(true);
+                        }}
+                        disabled={!!(cartDetailsData?.status !== 'ACCEPTED')}
+                        containerStyle={{
+                          ...styles.footerBtnContainer,
+                          backgroundColor:
+                            cartDetailsData?.status === 'ACCEPTED'
+                              ? colors.primary
+                              : colors.subHeading,
+                        }}
+                      />
+                    )}
+                </View>
+              }
+              {renderModal()}
+              {renderPaymentStatusModal()}
+            </>
+          )}
+          {renderNoItemInCartModal()}
+          {/* {renderRequestAction()} */}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -612,6 +653,9 @@ const Styles = ({colors, fonts}: any) =>
     content: {
       flex: 1,
       marginHorizontal: 10,
+    },
+    scroll: {
+      flex: 1,
     },
     centeredView: {
       flex: 1,
@@ -704,7 +748,7 @@ const Styles = ({colors, fonts}: any) =>
     },
     locationText: {
       ...fonts.description,
-      // color: colors.gray,
+      color: colors.primary,
       lineHeight: 12,
       paddingLeft: 24,
       paddingBottom: 10,
@@ -923,5 +967,15 @@ const Styles = ({colors, fonts}: any) =>
     orderActionBtnTxt: {
       ...fonts.subHeading,
       color: colors.primary,
+    },
+    button: {
+      backgroundColor: colors.primary,
+      paddingVertical: 10,
+      paddingHorizontal: 20,
+      borderRadius: 5,
+      marginHorizontal: 10,
+    },
+    buttonContainer: {
+      flexDirection: 'row',
     },
   });

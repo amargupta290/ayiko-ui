@@ -28,6 +28,13 @@ export interface AuthState {
   customerData: DataI | null;
   supplierData: DataI | null;
   driverData: DataI | null;
+  currentUser: DataI | null;
+  userLocation: DataI | null;
+  updateProfilePictureRes: DataI | null;
+  userNextRoute: DataI | null;
+  deleteCustomerRes: DataI | null;
+  deleteDriverRes: DataI | null;
+  deleteSupplierRes: DataI | null;
 }
 
 export const initialState: AuthState = {
@@ -43,6 +50,13 @@ export const initialState: AuthState = {
   congratulations: false,
   supplierData: null,
   driverData: null,
+  currentUser: null,
+  userLocation: null,
+  updateProfilePictureRes: null,
+  userNextRoute: null,
+  deleteCustomerRes: null,
+  deleteDriverRes: null,
+  deleteSupplierRes: null,
 };
 
 export const login = createAsyncThunk(
@@ -100,6 +114,7 @@ export const supplier_login = createAsyncThunk(
       const response = await AuthService.supplier_login(data);
       return response;
     } catch (err) {
+      console.log('supplier_login', err);
       return rejectWithValue(err);
     }
   },
@@ -179,6 +194,80 @@ export const getSupplier = createAsyncThunk(
   },
 );
 
+export const updateSupplierProfilePicture = createAsyncThunk(
+  'auth/updateSupplierProfilePicture',
+  async (id, {rejectWithValue}) => {
+    try {
+      const response = await AuthService.updateSupplierProfilePicture(id);
+      return response;
+    } catch (err) {
+      return rejectWithValue(err);
+    }
+  },
+);
+
+export const updateCustomerProfilePicture = createAsyncThunk(
+  'auth/updateCustomerProfilePicture',
+  async (id, {rejectWithValue}) => {
+    try {
+      const response = await AuthService.updateCustomerProfilePicture(id);
+      return response;
+    } catch (err) {
+      return rejectWithValue(err);
+    }
+  },
+);
+
+export const updateDriverProfilePicture = createAsyncThunk(
+  'auth/updateDriverProfilePicture',
+  async (id, {rejectWithValue}) => {
+    try {
+      const response = await AuthService.updateDriverProfilePicture(id);
+      console.log('auth/updateDriverProfilePicture response', response);
+      return response;
+    } catch (err) {
+      console.log('auth/updateDriverProfilePicture err', err);
+      return rejectWithValue(err);
+    }
+  },
+);
+
+export const deleteCustomer = createAsyncThunk(
+  'auth/deleteCustomer',
+  async (id, {rejectWithValue}) => {
+    try {
+      const response = await AuthService.deleteCustomer(id);
+      return response;
+    } catch (err) {
+      return rejectWithValue(err);
+    }
+  },
+);
+
+export const deleteSupplier = createAsyncThunk(
+  'auth/deleteSupplier',
+  async (id, {rejectWithValue}) => {
+    try {
+      const response = await AuthService.deleteSupplier(id);
+      return response;
+    } catch (err) {
+      return rejectWithValue(err);
+    }
+  },
+);
+
+export const deleteDriver = createAsyncThunk(
+  'auth/deleteDriver',
+  async (id, {rejectWithValue}) => {
+    try {
+      const response = await AuthService.deleteDriver(id);
+      return response;
+    } catch (err) {
+      return rejectWithValue(err);
+    }
+  },
+);
+
 export const authSlice = createSlice({
   name: 'auth',
   initialState,
@@ -202,6 +291,15 @@ export const authSlice = createSlice({
     },
     setCongratulationView: (state, action) => {
       state.congratulations = action.payload;
+    },
+    setCurrentUser: (state, action) => {
+      state.currentUser = action.payload;
+    },
+    setUserLocation: (state, action) => {
+      state.userLocation = action.payload;
+    },
+    setUserNextRoute: (state, action) => {
+      state.userNextRoute = action.payload;
     },
   },
   extraReducers: builder => {
@@ -317,6 +415,7 @@ export const authSlice = createSlice({
       (state, action: PayloadAction<any>) => {
         state.loading = false;
         state.userData = action.payload;
+        state.currentUser = action.payload;
       },
     );
     builder.addCase(
@@ -336,6 +435,9 @@ export const authSlice = createSlice({
       (state, action: PayloadAction<any>) => {
         state.loading = false;
         state.customerData = action.payload;
+        if (action.payload) {
+          state.currentUser = action.payload;
+        }
       },
     );
     builder.addCase(
@@ -354,7 +456,10 @@ export const authSlice = createSlice({
       getDriverByToken.fulfilled,
       (state, action: PayloadAction<any>) => {
         state.loading = false;
-        state.supplierData = action.payload;
+        state.customerData = action.payload;
+        if (action.payload) {
+          state.currentUser = action.payload;
+        }
       },
     );
     builder.addCase(
@@ -375,6 +480,9 @@ export const authSlice = createSlice({
       (state, action: PayloadAction<any>) => {
         state.loading = false;
         state.supplierData = action.payload;
+        if (action.payload) {
+          state.currentUser = action.payload;
+        }
       },
     );
     builder.addCase(
@@ -404,15 +512,132 @@ export const authSlice = createSlice({
         state.loading = false;
       },
     );
+
+    builder.addCase(updateSupplierProfilePicture.pending, state => {
+      state.loading = true;
+    });
+    builder.addCase(
+      updateSupplierProfilePicture.fulfilled,
+      (state, action: PayloadAction<any>) => {
+        state.loading = false;
+        state.updateProfilePictureRes = action.payload;
+      },
+    );
+    builder.addCase(
+      updateSupplierProfilePicture.rejected,
+      (state, action: PayloadAction<any>) => {
+        state.message = action.payload;
+        state.showMessage = true;
+        state.loading = false;
+      },
+    );
+
+    builder.addCase(updateCustomerProfilePicture.pending, state => {
+      state.loading = true;
+    });
+    builder.addCase(
+      updateCustomerProfilePicture.fulfilled,
+      (state, action: PayloadAction<any>) => {
+        state.loading = false;
+        state.updateProfilePictureRes = action.payload;
+      },
+    );
+    builder.addCase(
+      updateCustomerProfilePicture.rejected,
+      (state, action: PayloadAction<any>) => {
+        state.message = action.payload;
+        state.showMessage = true;
+        state.loading = false;
+      },
+    );
+
+    builder.addCase(updateDriverProfilePicture.pending, state => {
+      state.loading = true;
+    });
+    builder.addCase(
+      updateDriverProfilePicture.fulfilled,
+      (state, action: PayloadAction<any>) => {
+        state.loading = false;
+        state.updateProfilePictureRes = action.payload;
+      },
+    );
+    builder.addCase(
+      updateDriverProfilePicture.rejected,
+      (state, action: PayloadAction<any>) => {
+        state.message = action.payload;
+        state.showMessage = true;
+        state.loading = false;
+      },
+    );
+
+    builder.addCase(deleteCustomer.pending, state => {
+      state.loading = true;
+    });
+    builder.addCase(
+      deleteCustomer.fulfilled,
+      (state, action: PayloadAction<any>) => {
+        state.loading = false;
+        state.deleteCustomerRes = action.payload;
+      },
+    );
+    builder.addCase(
+      deleteCustomer.rejected,
+      (state, action: PayloadAction<any>) => {
+        state.message = action.payload;
+        state.showMessage = true;
+        state.loading = false;
+      },
+    );
+
+    builder.addCase(deleteSupplier.pending, state => {
+      state.loading = true;
+    });
+    builder.addCase(
+      deleteSupplier.fulfilled,
+      (state, action: PayloadAction<any>) => {
+        state.loading = false;
+        state.deleteSupplierRes = action.payload;
+      },
+    );
+    builder.addCase(
+      deleteSupplier.rejected,
+      (state, action: PayloadAction<any>) => {
+        state.message = action.payload;
+        state.showMessage = true;
+        state.loading = false;
+      },
+    );
+
+    builder.addCase(deleteDriver.pending, state => {
+      state.loading = true;
+    });
+    builder.addCase(
+      deleteDriver.fulfilled,
+      (state, action: PayloadAction<any>) => {
+        state.loading = false;
+        state.deleteDriverRes = action.payload;
+      },
+    );
+    builder.addCase(
+      deleteDriver.rejected,
+      (state, action: PayloadAction<any>) => {
+        state.message = action.payload;
+        state.showMessage = true;
+        state.loading = false;
+      },
+    );
   },
 });
 
 export const {
   showLoading,
   congratulationUpdate,
+  setCurrentUser,
   signOut,
   signIn,
   setRole,
+  setUserNextRoute,
+  setUserLocation,
   setCongratulationView,
 } = authSlice.actions;
 

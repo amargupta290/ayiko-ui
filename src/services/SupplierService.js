@@ -9,6 +9,9 @@ SupplierService.supplierDetails = async id =>
 SupplierService.popularProductsList = async =>
   ApiClient.get(`${API_URL.PRODUCTS}/popular`);
 
+SupplierService.supplierOrders = async =>
+  ApiClient.get(`${API_URL.ORDER}/supplier`);
+
 SupplierService.supplierProducts = async id =>
   ApiClient.get(`${API_URL.SUPPLIER}/${id}/products`);
 

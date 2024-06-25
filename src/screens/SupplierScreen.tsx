@@ -105,7 +105,7 @@ const SupplierScreen = ({navigation, route}: {navigation: any; route: any}) => {
                     <ImageComp
                       source={
                         item?.imageUrl?.length
-                          ? {uri: item?.imageUrl[0]}
+                          ? {uri: item?.imageUrl[0]?.imageUrl}
                           : AppImages.noImg.source
                       }
                       resizeMode="cover"
@@ -156,7 +156,7 @@ const SupplierScreen = ({navigation, route}: {navigation: any; route: any}) => {
           <Pressable onPress={() => navigation.goBack()}>
             <Feather name="arrow-left" size={25} color={colors.white} />
           </Pressable>
-          <View style={styles.searchWrapper}>
+          {/* <View style={styles.searchWrapper}>
             <SVGSearch />
             <TextInput
               placeholder="Search for items or supplier"
@@ -164,7 +164,7 @@ const SupplierScreen = ({navigation, route}: {navigation: any; route: any}) => {
             />
           </View>
 
-          <Feather name="bell" size={32} color={colors.white} />
+          <Feather name="bell" size={32} color={colors.white} /> */}
         </View>
       </View>
     );
@@ -176,7 +176,7 @@ const SupplierScreen = ({navigation, route}: {navigation: any; route: any}) => {
         <View style={styles.subHeaderContainer}>
           <Text style={styles.heading}>Catalog</Text>
           <TouchableOpacity
-            onPress={() => navigation.navigate('SupplierListScreen')}>
+            onPress={() => navigation.navigate('ProductList', {id: id})}>
             <Text style={styles.subHeading}>View all</Text>
           </TouchableOpacity>
         </View>
@@ -204,7 +204,7 @@ const SupplierScreen = ({navigation, route}: {navigation: any; route: any}) => {
                       navigation.navigate('ProductDetail', {
                         product_id: item?.id,
                         product: item,
-                        supplier_id: supplierDetails?.id,
+                        supplier_id: supplierDetails?.id ?? null,
                       })
                     }>
                     <View style={{}}>
@@ -212,7 +212,7 @@ const SupplierScreen = ({navigation, route}: {navigation: any; route: any}) => {
                         <ImageComp
                           source={
                             item?.imageUrl?.length
-                              ? {uri: item?.imageUrl[0]}
+                              ? {uri: item?.imageUrl[0]?.imageUrl}
                               : AppImages.noImg.source
                           }
                           imageStyle={{

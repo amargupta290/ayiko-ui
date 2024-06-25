@@ -7,10 +7,14 @@ import {
   SVGRoad,
 } from 'assets/image';
 import {FButton, ImageComp, Loader} from 'components';
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {
   FlatList,
   Image,
+  Linking,
+  NativeEventEmitter,
+  NativeModules,
+  Platform,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -18,14 +22,17 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import Feather from 'react-native-vector-icons/Feather';
-import Popover from 'react-native-popover-view';
-import {
-  acceptCart,
-  rejectCart,
-  updatePaymentStatus,
-} from 'store/slices/CartSlice';
 import {useDispatch} from 'react-redux';
+import {
+  completeDelivery,
+  orderDetails,
+  sendDriverLocationCoords,
+  startDelivery,
+} from 'store/slices/DriverSlice';
+import {createMapLink} from 'react-native-open-maps';
+import {useAppSelector} from 'hooks';
+import {RootState} from 'store';
+import {Example} from '../services';
 
 const DriverDeliveryDetail = ({
   navigation,
@@ -37,104 +44,108 @@ const DriverDeliveryDetail = ({
   const dispatch = useDispatch();
   const {colors, fonts} = useTheme();
   const styles = Styles({colors, fonts});
-  // const [data, setdata] = useState(route.params?.data);
+  const [data, setdata] = useState(route.params?.data);
+  const [location, setLocation] = useState<any>(null);
+  const {cartDetailsData, acceptCartData, paymentStatusData} = useAppSelector(
+    (state: RootState) => state.cart,
+  );
 
-  console.log('DriverDeliveryDetail data', JSON.stringify(data, null, 2));
+  const {orderDetailsRes, startDeliveryRes, completeDeliveryRes, loading} =
+    useAppSelector((state: RootState) => state.driver);
 
-  const calculateTotal = (items: any) => {
-    let total = 0;
+  console.log(
+    'DriverDeliveryDetail data',
+    JSON.stringify(orderDetailsRes, null, 2),
+  );
 
-    // Iterate over each item and calculate the total cost
-    items.forEach(item => {
-      const quantity = parseInt(item.quantity); // Convert quantity to integer
-      const unitPrice = parseFloat(item.product.unitPrice); // Convert unitPrice to float
-      total += quantity * unitPrice;
-    });
+  useEffect(() => {
+    //TODO: When order data coming correctly
+    if (orderDetailsRes) {
+      setdata(orderDetailsRes);
+    }
+  }, [orderDetailsRes]);
 
-    return total;
-  };
+  useEffect(() => {
+    dispatch(orderDetails(route?.params?.data?.id));
+  }, [
+    route?.params?.data?.id,
+    startDeliveryRes,
+    completeDeliveryRes,
+    dispatch,
+  ]);
 
-  const data = {
-    items: [
-      {
-        name: 'Potato',
-        unitPrice: 30,
-        unit: 'Kg',
-        available: true,
-        quantity: 1,
-        product: {
-          unitPrice: 300,
-          name: 'Potato',
-          available: true,
-          quantity: 1,
-          category: 'kg',
+  useEffect(() => {
+    if (startDeliveryRes) {
+      if (Platform?.OS === 'android') Example.startService();
+    }
+  }, [startDeliveryRes]);
+
+  useEffect(() => {
+    if (completeDeliveryRes) {
+      if (Platform?.OS === 'android') Example.stopService();
+    }
+  }, [completeDeliveryRes]);
+
+  const MyEventEmitter =
+    Platform.OS !== 'ios' &&
+    new NativeEventEmitter(NativeModules?.MyEventEmitter);
+
+  useEffect(() => {
+    const subscription =
+      Platform.OS !== 'ios' &&
+      MyEventEmitter.addListener(
+        'LocationUpdateEvent',
+        async (locationCoords: {latitude: number; longitude: number}) => {
+          console.log(
+            'Received locationCoords from native NativeModules:',
+            locationCoords,
+            orderDetailsRes,
+          );
+          if (locationCoords) {
+            const {latitude, longitude} = locationCoords;
+            setLocation({
+              latitude,
+              longitude,
+            });
+            if (location?.latitude !== latitude) {
+              dispatch(
+                sendDriverLocationCoords({
+                  id: orderDetailsRes?.id,
+                  locationData: {
+                    latitude,
+                    longitude,
+                  },
+                }),
+              );
+            }
+          }
+          // Handle data received from native side
         },
-      },
-      // {
-      //   name: 'Potato',
-      //   price: 30,
-      //   unit: 'Kg',
-      //   available: true,
-      //   qty: 1,
-      // },
-      // {
-      //   name: 'Potato',
-      //   price: 30,
-      //   unit: 'Kg',
-      //   available: true,
-      //   qty: 1,
-      // },
-    ],
-  };
-  const renderOrderItem = () => {
-    return (
-      <View style={styles.orderItemsCard}>
-        <View style={[styles.row, styles.upperCardHeader]}>
-          <Text style={styles.headingText}>Order Details</Text>
-        </View>
-        <View style={styles.orderItemContainer}>
-          {data?.items?.map((item: any, i: number) => {
-            return (
-              <View style={styles.orderItemCard} key={i}>
-                <View style={styles.row}>
-                  <View>
-                    <ImageComp
-                      source={
-                        item?.product?.imageUrl?.length
-                          ? {uri: item?.product?.imageUrl[0]}
-                          : AppImages.noImg.source
-                      }
-                      resizeMode="cover"
-                      imageStyle={styles.orderItemImage}
-                    />
-                  </View>
-                  <View style={styles.orderItemTextContainer}>
-                    <Text style={styles.headingText}>
-                      {item?.product?.name}
-                    </Text>
-                    <Text style={[styles.title]}>
-                      Rs. {item?.product?.unitPrice}/{item.product?.category}
-                    </Text>
-                    <Text
-                      style={{
-                        ...styles.available,
-                        color: item?.product?.available
-                          ? colors.green
-                          : colors.red,
-                      }}>
-                      {item?.product?.available ? 'In Stock' : 'Out of Stock'}
-                    </Text>
-                  </View>
-                </View>
-                <View style={styles.orderItemQty}>
-                  <Text style={styles.quantity}> {item?.quantity}/</Text>
-                  <Text style={styles.unitText}>{item?.product?.category}</Text>
-                </View>
-              </View>
-            );
-          })}
-        </View>
-      </View>
+      );
+    console.log(
+      'Received locationCoords from native NativeModules:',
+      subscription,
+    );
+    return () => {
+      console.log('HOLAAA Removed');
+      subscription.remove();
+    };
+  }, []);
+
+  // Don't forget to unsubscribe when component unmounts
+
+  const _openGoogleMap = async () => {
+    Linking.openURL(
+      createMapLink({
+        provider: Platform?.OS === 'ios' ? 'apple' : 'google',
+        query: 'Destination',
+        latitude: orderDetailsRes?.deliveryAddress?.location
+          ? orderDetailsRes?.deliveryAddress?.location?.latitude
+          : 37.484847,
+        longitude: orderDetailsRes?.deliveryAddress?.location
+          ? orderDetailsRes?.deliveryAddress?.location?.longitude
+          : -122.148386,
+      }),
     );
   };
 
@@ -143,34 +154,44 @@ const DriverDeliveryDetail = ({
       <View style={styles.addCard}>
         <View style={[styles.row, styles.upperCardHeader]}>
           <Text style={styles.headingText}>Delivery Request</Text>
-          <View>
-            <Text
-              style={{
-                ...styles.available,
-                color: route?.params?.available ? colors.green : colors.red,
-              }}>
-              {route?.params?.available ? 'In stock' : 'Out of stock'}
-            </Text>
-          </View>
         </View>
-        <View style={[styles.row, styles.orderDetailTextContainer]}>
+        <TouchableOpacity
+          style={[styles.row, styles.orderDetailTextContainer]}
+          onPress={_openGoogleMap}>
           <Image
             source={require('assets/image/logos_google-maps.png')}
             resizeMode="contain"
             style={styles.orderDetailAddressImage}
           />
           <Text style={styles.title}>Delivery Address: </Text>
-          <Text style={styles.title}>New sangvi, Pune</Text>
-        </View>
+          <Text style={{...styles.title, color: colors.primary}}>
+            {orderDetailsRes?.deliveryAddress?.addressLine1
+              ? orderDetailsRes?.deliveryAddress?.addressLine1
+              : 'No location found'}
+          </Text>
+        </TouchableOpacity>
         <View style={[styles.row, styles.orderDetailLowerTextContainer]}>
           <View style={styles.orderDetailNoteIcon}>
             <NoteIcon />
           </View>
           <Text style={styles.title}>Order ID: </Text>
-          <Text style={styles.title}>#{data?.id}</Text>
+          <Text style={styles.title}>#{orderDetailsRes?.id}</Text>
         </View>
       </View>
     );
+  };
+
+  const checkStartDeliveryEnabled = () => {
+    if (orderDetailsRes?.assignedToSelf) {
+      return ['DELIVERY_COMPLETED', 'DRIVER_DISPATCHED', 'DRIVER_REJECTED'];
+    } else {
+      return [
+        'DELIVERY_COMPLETED',
+        'DRIVER_ASSIGNED',
+        'DRIVER_DISPATCHED',
+        'DRIVER_REJECTED',
+      ];
+    }
   };
 
   const orderCalculationCard = () => {
@@ -187,26 +208,59 @@ const DriverDeliveryDetail = ({
           }}>
           <FButton
             label="Start Delivery"
-            // buttonClick={() => {
-            //   dispatch(acceptCart({id: data?.id}));
-            // }}
-            containerStyle={styles.orderActionBtn}
+            buttonClick={() => {
+              dispatch(startDelivery({id: orderDetailsRes?.id}));
+            }}
+            disabled={
+              !!checkStartDeliveryEnabled().includes(
+                orderDetailsRes?.driverStatus,
+              )
+            }
+            containerStyle={{
+              ...styles.orderActionBtn,
+              backgroundColor: !!checkStartDeliveryEnabled().includes(
+                orderDetailsRes?.driverStatus,
+              )
+                ? colors.subHeading
+                : colors.primary,
+            }}
             labelStyle={styles.orderActionBtnTxt}
           />
           <FButton
             label="End Delivery"
-            // buttonClick={() => {
-            //   dispatch(rejectCart({id: data?.id}));
-            // }}
+            buttonClick={() => {
+              dispatch(completeDelivery({id: orderDetailsRes?.id}));
+            }}
+            disabled={
+              !![
+                'DELIVERY_COMPLETED',
+                'DRIVER_ACCEPTED',
+                'DRIVER_ASSIGNED',
+              ].includes(orderDetailsRes?.driverStatus)
+            }
             containerStyle={{
               ...styles.orderActionBtn,
-              backgroundColor: colors?.subHeading,
+              backgroundColor: !![
+                'DELIVERY_COMPLETED',
+                'DRIVER_ACCEPTED',
+                'DRIVER_ASSIGNED',
+              ].includes(orderDetailsRes?.driverStatus)
+                ? colors?.subHeading
+                : colors.primary,
             }}
             labelStyle={styles.orderActionBtnTxt}
           />
         </View>
         <View>
-          <SVGDeliveryMan />
+          <View
+            style={{
+              left:
+                orderDetailsRes?.driverStatus === 'DELIVERY_COMPLETED'
+                  ? '90%'
+                  : '0%',
+            }}>
+            <SVGDeliveryMan />
+          </View>
           <SVGRoad width={'100%'} />
         </View>
       </View>
@@ -216,9 +270,12 @@ const DriverDeliveryDetail = ({
   return (
     <SafeAreaView style={styles.safeArea}>
       {/* <Loader isLoading={isLoading} /> */}
-      <ScrollView style={styles.content}>
-        {orderDetailCard()}
-        {renderOrderItem()}
+      <ScrollView
+        style={{
+          ...styles.content,
+          marginHorizontal: !route?.params?.header ? 10 : 0,
+        }}>
+        {!route?.params?.header && orderDetailCard()}
         {orderCalculationCard()}
         <View
           style={{
@@ -229,7 +286,6 @@ const DriverDeliveryDetail = ({
             right: 0,
             justifyContent: 'space-between',
             flexDirection: 'row',
-            // marginVertical: 10,
           }}>
           <FButton
             label="Cancel"
@@ -264,7 +320,7 @@ const Styles = ({colors, fonts}: any) =>
     },
     content: {
       flex: 1,
-      marginHorizontal: 10,
+      // marginHorizontal: 10,
     },
     container: {
       padding: 24,
@@ -329,6 +385,8 @@ const Styles = ({colors, fonts}: any) =>
     },
     orderDetailLowerTextContainer: {
       top: 30,
+      flexDirection: 'row',
+      width: '60%',
     },
     orderItemImage: {
       height: 66,

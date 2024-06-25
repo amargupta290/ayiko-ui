@@ -1,7 +1,7 @@
 import {Dimensions} from 'react-native';
 import SVGLoginLogo from './login-logo.svg';
 import SVGMenuLogoSquare from './logo-square.svg';
-import SVGHome from './home.svg';
+import SVGHome from './homeicon.svg';
 import SVGNotification from './notification.svg';
 import SVGHeart from './heart.svg';
 import SVGProfile from './profile.svg';
@@ -10,9 +10,9 @@ import SVGMenu from './menu.svg';
 import SVGSearch from './search.svg';
 import SVGOrderIcon from './myOrders.svg';
 
-import SVGDriver from './driver.svg';
-import SVGTrack from './track.svg';
-import SVGCatalog from './catalog.svg';
+import SVGDriver from './drivericon.svg';
+import SVGTrack from './trackicon.svg';
+import SVGCatalog from './catalogicon.svg';
 
 import SVGPizzBrug from './Home/PizzaBrug.svg';
 import SVGJuiceClub from './Home/JuiceClub.svg';
@@ -49,6 +49,15 @@ import SVGSlideThree from './slide3.svg';
 import SVGDeliveryMan from './deliveryMan.svg';
 import SVGRoad from './road.svg';
 import SVGCatalogAddButton from './addCatalogButton.svg';
+import SVGNotificationIcon from './notification.svg';
+import SVGDeliveriesIcon from './deliveryIcon.svg';
+import SVGAddDriver from './addDriver.svg';
+import SVGdriverIcon from './user_icon.svg';
+import SVGPhoneIcon from './phone_Icon.svg';
+import SVGOutOfStock from './outofstock.svg';
+import SVGArrowLeft from './arrow-left.svg';
+import SVGTrackIcon from './logo5_23_1211.svg';
+import SVGUserIcon from './person-circle.svg';
 
 import SVGMembership from './membership.svg';
 import SVGPrivcacyPolicy from './privcacy_policy.svg';
@@ -111,6 +120,7 @@ export {
   CurrentLocationIcon,
   NoteIcon,
   SVGHealthyFood,
+  SVGTrackIcon,
   Group594,
   Group593,
   SVGKidsFood,
@@ -129,20 +139,28 @@ export {
   SVGPopularItems2,
   SVGPopularItems3,
   SVGBorderedCircleIcon,
+  SVGAddDriver,
+  SVGUserIcon,
   SVGCatalogAddButton,
   SVGPopularItems4,
   SVGProfilePic,
   SVGCart,
   SVGComingSoon,
   SVGDriver,
+  SVGNotificationIcon,
+  SVGDeliveriesIcon,
   SVGDeliveryMan,
   SVGRoad,
   SVGBrokenBar,
   SVGTrack,
+  SVGdriverIcon,
+  SVGPhoneIcon,
+  SVGOutOfStock,
   SVGCatalog,
   SVGHandwave,
   SVGMembership,
   SVGPrivcacyPolicy,
+  SVGArrowLeft,
   SVGPaymentMethod,
   SVGLanguage,
   SVGBusinessInfo,

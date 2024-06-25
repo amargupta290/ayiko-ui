@@ -11,6 +11,7 @@ import {
 } from 'screens';
 import {useTheme} from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import CustomerHomeNavigation from './CustomerHomeNavigation';
 
 const Stack = createNativeStackNavigator();
 

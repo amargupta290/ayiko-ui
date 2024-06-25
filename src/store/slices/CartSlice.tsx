@@ -206,7 +206,7 @@ export const rejectCart = createAsyncThunk(
       const response = await CartService.RejectCart(data);
       return response;
     } catch (err) {
-      console.log('cart/acceptCart', err);
+      console.log('cart/rejectCart', err);
       return rejectWithValue(err);
     }
   },
@@ -274,6 +274,9 @@ export const CartSlice = createSlice({
   reducers: {
     showLoading: state => {
       state.loading = true;
+    },
+    setCartToNull: state => {
+      state.cartDetailsData = null;
     },
   },
   extraReducers: builder => {
@@ -417,6 +420,6 @@ export const CartSlice = createSlice({
   },
 });
 
-export const {showLoading} = CartSlice.actions;
+export const {showLoading, setCartToNull} = CartSlice.actions;
 
 export default CartSlice.reducer;

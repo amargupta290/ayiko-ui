@@ -1,19 +1,24 @@
 import React, {useEffect, useState} from 'react';
 import {
+  Dimensions,
   FlatList,
+  Modal,
   SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from 'react-native';
 import {useTheme} from '@react-navigation/native';
 import Feather from 'react-native-vector-icons/Feather';
 import {useAppDispatch, useAppSelector} from 'hooks';
 import {RootState} from 'store';
+import globalHelpers from '../utils/helpers';
 import {
+  AppImages,
   SVGCatalogAddButton,
   SVGNotification,
   SVGProfilePic,
@@ -21,9 +26,17 @@ import {
 } from 'assets/image';
 import {catalogList} from 'store/slices/catalogSlice';
 import {FButton, ImageComp, Loader} from 'components';
-import {supplierApprovalRequest} from 'store/slices/SupplierSlice';
+import {
+  supplierApprovalRequest,
+  supplierOrders,
+} from 'store/slices/SupplierSlice';
 import {getSupplierByToken} from 'store/slices/authSlice';
-import {acceptCart, rejectCart} from 'store/slices/CartSlice';
+import {
+  acceptCart,
+  rejectCart,
+  updatePaymentStatus,
+} from 'store/slices/CartSlice';
+import OrderList from './OrderList';
 
 const SupplierHomeScreen = ({
   navigation,
@@ -41,22 +54,26 @@ const SupplierHomeScreen = ({
   );
   const [pinCode, setPinCode] = useState('');
   const [activeTab, setActiveTab] = useState(0);
+  const [isPopupVisible, setPopupVisible] = useState(false);
+  const [state, setState] = useState<Number | null>(null);
+  const [dataItem, setDataItem] = useState<any>(null);
+
   const catalogData = useAppSelector((state: RootState) => state.catalog.data);
   const supplierData = useAppSelector(
     (state: RootState) => state.auth.supplierData,
   );
-  const {supplierApprovalRequestData} = useAppSelector(
+  const {supplierApprovalRequestData, supplierOrdersData} = useAppSelector(
     (state: RootState) => state.supplier,
   );
 
-  const {acceptCartData, rejectCartData} = useAppSelector(
+  const {acceptCartData, rejectCartData, paymentStatusData} = useAppSelector(
     (state: RootState) => state.cart,
   );
   const isLoading = useAppSelector((state: RootState) => state.cart.loading);
 
   console.log(
     'supplierData supplierApprovalRequestData',
-    JSON.stringify(supplierApprovalRequestData, null, 2),
+    JSON.stringify(supplierOrdersData, null, 2),
   );
 
   useEffect(() => {
@@ -67,31 +84,57 @@ const SupplierHomeScreen = ({
     if (supplierData?.id) {
       let params = {
         id: supplierData?.id,
-        status: !activeTab ? 'PENDING' : 'ACCEPTED',
+        status: '',
       };
       dispatch(catalogList(supplierData?.id));
-      dispatch(supplierApprovalRequest(params));
+      activeTab
+        ? dispatch(supplierOrders())
+        : dispatch(supplierApprovalRequest(params));
     }
   }, [dispatch, supplierData]);
-
-  useEffect(() => {
-    let params = {
-      id: supplierData?.id,
-      status: !activeTab ? 'PENDING' : 'ACCEPTED',
-    };
-    dispatch(supplierApprovalRequest(params));
-  }, [acceptCartData, rejectCartData, activeTab]);
 
   const areAllProductsAvailable = (data: any) => {
     let totalQuantity = 0;
     let available = true;
-    for (let item of data.items) {
-      if (!item.product.available) {
+    for (let item of data?.items) {
+      if (!item?.product?.available) {
         available = false; // If any product is not available, return false
       }
       totalQuantity += item.quantity;
     }
     return {available: available, totalQuantity: totalQuantity}; // If all products are available, return true
+  };
+
+  const openPopup = () => {
+    setPopupVisible(true);
+  };
+
+  const closePopup = () => {
+    setPopupVisible(false);
+  };
+
+  useEffect(() => {
+    let params = {
+      id: supplierData?.id,
+      status: '',
+    };
+    activeTab
+      ? dispatch(supplierOrders())
+      : dispatch(supplierApprovalRequest(params));
+    closePopup();
+  }, [acceptCartData, rejectCartData, activeTab, paymentStatusData]);
+
+  const onConfirm = () => {
+    // Handle confirmation action here
+    if (state === 0) {
+      dispatch(acceptCart({id: dataItem?.id}));
+    } else if (state === 1) {
+      dispatch(rejectCart({id: dataItem?.id}));
+    } else if (state === 2) {
+      dispatch(updatePaymentStatus({id: dataItem?.id, status: 'CONFIRMED'}));
+    } else if (state === 3) {
+      dispatch(updatePaymentStatus({id: dataItem?.id, status: 'REJECTED'}));
+    }
   };
 
   const renderOrderItem = ({item, index}: any) => {
@@ -100,53 +143,123 @@ const SupplierHomeScreen = ({
         style={styles.orderCard}
         onPress={() =>
           navigation.navigate('SupplierOrderDetailsScreen', {
-            data: item,
+            data: !!activeTab ? item?.cart : item,
             available: areAllProductsAvailable(item)?.available,
           })
         }
         key={index}>
-        <View style={[styles.row, {justifyContent: 'space-between'}]}>
+        <View
+          style={[
+            styles.row,
+            {
+              width: Dimensions.get('window').width - 150,
+              justifyContent: 'space-between',
+              gap: 10,
+            },
+          ]}>
           <Text style={styles.orderName}>
-            {item.customer?.fullName} - {item?.id}
+            {!!activeTab
+              ? item?.cart?.customer?.fullName
+              : item.customer?.fullName}{' '}
+            - {item?.id}
           </Text>
-          <Text style={styles.orderStock}>
-            {areAllProductsAvailable(item)?.available
-              ? 'In Stock'
-              : 'Out of Stock'}
-          </Text>
+          {!activeTab && (
+            <Text style={styles.orderStock}>
+              {areAllProductsAvailable(item)?.available
+                ? 'In Stock'
+                : 'Out of Stock'}
+            </Text>
+          )}
         </View>
-        <View style={[styles.row, {gap: 16, marginVertical: 8}]}>
-          <Text>Qty: {areAllProductsAvailable(item)?.totalQuantity}</Text>
-          <View style={[styles.row, {gap: 4}]}>
-            <Feather name="star" color={colors.yellow} />
-            <Text>{item.rating ?? 4.5}</Text>
+        <View style={{gap: 16, marginVertical: 8, width: '70%'}}>
+          <View style={{gap: 10}}>
+            <Text>Qty: {areAllProductsAvailable(item)?.totalQuantity}</Text>
+            {!!activeTab && (
+              <View>
+                <Text>Customer: {item?.cart?.customer?.fullName}</Text>
+                <View style={[styles.row, {gap: 4}]}>
+                  <Text>Address: </Text>
+                  <Text>
+                    {item?.deliveryAddress?.addressLine1
+                      ? item?.deliveryAddress?.addressLine1
+                      : 'no location found'}
+                  </Text>
+                </View>
+              </View>
+            )}
           </View>
         </View>
         <Text numberOfLines={1} style={styles.orderDesc}>
           {item.description}
         </Text>
-        {!activeTab && (
-          <View style={styles.orderActionBtnContainer}>
-            {/* {activeTab && paymentDetails?.customerStatus?.toLowerCase === "confirmed"} */}
-            <FButton
-              label="Approve"
-              buttonClick={() => {
-                dispatch(acceptCart({id: item?.id}));
-              }}
-              containerStyle={styles.orderActionBtn}
-              labelStyle={styles.orderActionBtnTxt}
-            />
-            <FButton
-              label="Reject"
-              buttonClick={() => dispatch(rejectCart({id: item?.id}))}
-              containerStyle={{
-                ...styles.orderActionBtn,
-                backgroundColor: colors.red,
-              }}
-              labelStyle={styles.orderActionBtnTxt}
-            />
-          </View>
-        )}
+        <View
+          style={{
+            ...styles.row,
+            justifyContent: 'space-between',
+            alignItems: 'baseline',
+          }}>
+          <Text style={styles.orderStatus}>
+            {globalHelpers?.getSupplierOrderStatus(item)}
+          </Text>
+
+          {!activeTab && item?.status === 'PENDING' ? (
+            <View style={styles.orderActionBtnContainer}>
+              {/* {activeTab && paymentDetails?.customerStatus?.toLowerCase === "confirmed"} */}
+              <FButton
+                label="Approve"
+                buttonClick={() => {
+                  openPopup();
+                  setState(0);
+                  setDataItem(item);
+                }}
+                containerStyle={styles.orderActionBtn}
+                labelStyle={styles.orderActionBtnTxt}
+              />
+              <FButton
+                label="Reject"
+                buttonClick={() => {
+                  openPopup();
+                  setState(1);
+                  setDataItem(item);
+                }}
+                containerStyle={{
+                  ...styles.orderActionBtn,
+                  backgroundColor: colors.red,
+                }}
+                labelStyle={styles.orderActionBtnTxt}
+              />
+            </View>
+          ) : item?.paymentDetails?.customerStatus === 'CONFIRMED' &&
+            item?.paymentDetails?.supplierStatus !== 'CONFIRMED' ? (
+            <View style={styles.orderActionBtnContainer}>
+              <FButton
+                label="Approve"
+                buttonClick={() => {
+                  openPopup();
+                  setState(2);
+                  setDataItem(item);
+                }}
+                containerStyle={styles.orderActionBtn}
+                labelStyle={styles.orderActionBtnTxt}
+              />
+              <FButton
+                label="Reject"
+                buttonClick={() => {
+                  openPopup();
+                  setState(3);
+                  setDataItem(item);
+                }}
+                containerStyle={{
+                  ...styles.orderActionBtn,
+                  backgroundColor: colors.red,
+                }}
+                labelStyle={styles.orderActionBtnTxt}
+              />
+            </View>
+          ) : (
+            <></>
+          )}
+        </View>
       </TouchableOpacity>
     );
   };
@@ -179,7 +292,7 @@ const SupplierHomeScreen = ({
               styles.orderHeaderBtnTxt,
               activeTab === 1 && styles.activeOrderHeaderBtnTxt,
             ]}>
-            Completed
+            In-Progress
           </Text>
         </TouchableOpacity>
       </View>
@@ -199,7 +312,7 @@ const SupplierHomeScreen = ({
           <View style={styles.imgContainer}>
             <ImageComp
               source={{
-                uri: item?.imageUrl[0],
+                uri: item?.imageUrl[0]?.imageUrl,
               }}
               imageStyle={{
                 width: '100%',
@@ -221,31 +334,45 @@ const SupplierHomeScreen = ({
       <>
         <View style={styles.headerContainer}>
           <View style={styles.header}>
-            <View style={styles.searchWrapper}>
+            {/* <View style={styles.searchWrapper}>
               <SVGSearch />
               <TextInput
-                placeholder="Search for items or supplier"
+                placeholder="Search for items or orders"
                 style={styles.searchInput}
               />
             </View>
-            <SVGNotification fill={colors.white} strokeWidth="2" />
+            <SVGNotification fill={colors.white} strokeWidth="2" /> */}
           </View>
-          <TouchableOpacity
-            style={styles.locationContainer}
-            onPress={() => navigation.navigate('AddressScreen')}>
-            <View style={styles.locationheader}>
-              <Feather name="map-pin" size={16} color={colors.white} />
-              <Text style={styles.locationTitle}>
-                {pinCode ? pinCode : 'Delivery Location'}
-              </Text>
-              <Feather name="chevron-down" size={16} color={colors.white} />
-            </View>
-            <Text style={styles.locationText} numberOfLines={1}>
-              {address}
-            </Text>
-          </TouchableOpacity>
         </View>
       </>
+    );
+  };
+
+  const renderConfirmationPopup = () => {
+    return (
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={isPopupVisible}
+        onRequestClose={closePopup}>
+        <TouchableWithoutFeedback onPress={closePopup}>
+          <View style={styles.modalBackground}>
+            <View style={styles.modalContainer}>
+              <Text style={styles.messageText}>
+                Are you sure you want to proceed?
+              </Text>
+              <View style={styles.buttonContainer}>
+                <TouchableOpacity style={styles.button} onPress={onConfirm}>
+                  <Text style={styles.buttonText}>Yes</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.button} onPress={closePopup}>
+                  <Text style={styles.buttonText}>No</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
     );
   };
   return (
@@ -282,10 +409,15 @@ const SupplierHomeScreen = ({
         </View>
         <FlatList
           style={styles.orderList}
-          data={supplierApprovalRequestData ?? []}
+          data={
+            activeTab
+              ? supplierOrdersData
+              : supplierApprovalRequestData?.filter(item => !item?.orderId)
+          }
           renderItem={renderOrderItem}
           ListHeaderComponent={listOrderHeaderComp}
         />
+        {renderConfirmationPopup()}
       </ScrollView>
     </SafeAreaView>
   );
@@ -322,6 +454,7 @@ const Styles = ({colors, fonts}: any) =>
     },
     headerContainer: {
       backgroundColor: colors.primary,
+      paddingBottom: 10,
     },
     header: {
       flexDirection: 'row',
@@ -462,7 +595,7 @@ const Styles = ({colors, fonts}: any) =>
       paddingBottom: 10,
     },
     catalogCard: {
-      flex: 1,
+      flex: 1 / 3,
       margin: 7,
     },
     catalogTitle: {
@@ -509,6 +642,13 @@ const Styles = ({colors, fonts}: any) =>
     orderStock: {
       ...fonts.description,
       color: 'green',
+      width: 70,
+    },
+    orderStatus: {
+      ...fonts.subHeading,
+      color: 'green',
+      fontSize: 14,
+      width: 150,
     },
     orderList: {
       marginTop: 17,
@@ -569,5 +709,36 @@ const Styles = ({colors, fonts}: any) =>
     orderActionBtnTxt: {
       ...fonts.description,
       color: colors.white,
+    },
+    modalBackground: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    },
+    modalContainer: {
+      backgroundColor: 'white',
+      padding: 20,
+      borderRadius: 10,
+      alignItems: 'center',
+    },
+    messageText: {
+      marginBottom: 20,
+      fontSize: 18,
+      textAlign: 'center',
+    },
+    buttonContainer: {
+      flexDirection: 'row',
+    },
+    button: {
+      backgroundColor: colors.primary,
+      paddingVertical: 10,
+      paddingHorizontal: 20,
+      borderRadius: 5,
+      marginHorizontal: 10,
+    },
+    buttonText: {
+      color: 'white',
+      fontSize: 16,
     },
   });

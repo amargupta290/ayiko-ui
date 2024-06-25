@@ -21,4 +21,6 @@ export const API_URL = {
   CUSTOMER: 'customers',
   CART: 'cart',
   DRIVER: 'drivers',
+  ORDER: 'orders',
+  TRACKING: 'orderTracking',
 };

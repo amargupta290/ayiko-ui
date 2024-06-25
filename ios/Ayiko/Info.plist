@@ -47,6 +47,8 @@
 	<string>We need access to add photos to your library.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string></string>
+	<key>NSLocationUsageDescription</key>
+	<string>We need access to your location to get adddress and coordinates for delivery of shipment.</string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>SF-Pro-Text-Bold.ttf</string>

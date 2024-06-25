@@ -12,7 +12,7 @@ import {
 import {useTheme} from '@react-navigation/native';
 import Feather from 'react-native-vector-icons/Feather';
 import {useAppDispatch, useAppSelector} from 'hooks';
-
+import globalHelpers from '../utils/helpers';
 import {SVGSearch} from 'assets/image';
 import {RootState} from 'store';
 import {ImageComp, Loader} from 'components';
@@ -58,9 +58,20 @@ const OrderList = ({navigation, route}: {navigation: any; route: any}) => {
           imageStyle={styles.image}
         />
         <View style={styles.cardDescription}>
-          <Text style={styles.title}>{item?.supplier?.companyName}</Text>
-          <Text style={styles.available}>Order date: {'02/03/2024'}</Text>
-          {/* <Text style={styles.unitPrice}>{'4.5'}</Text> */}
+          <Text style={styles.title}>{item?.supplier?.businessName}</Text>
+          <Text
+            style={{
+              ...styles.unitPrice,
+              color: globalHelpers
+                ?.getSupplierOrderStatus(item)
+                ?.toLowerCase()
+                .includes(['pending'])
+                ? 'green'
+                : 'green',
+            }}>
+            {globalHelpers?.getSupplierOrderStatus(item)}
+          </Text>
+          <Text style={styles.available}>{'02/03/2024 04:30'}</Text>
         </View>
         <View style={{justifyContent: 'center'}}>
           <Feather name="chevron-right" size={18} />
@@ -77,7 +88,7 @@ const OrderList = ({navigation, route}: {navigation: any; route: any}) => {
           paddingHorizontal: 20,
           alignItems: 'center',
         }}>
-        <Text style={styles.title}>Past Orders</Text>
+        {/* <Text style={styles.title}>Past Orders</Text> */}
       </View>
     );
   };
@@ -93,7 +104,7 @@ const OrderList = ({navigation, route}: {navigation: any; route: any}) => {
           <Pressable onPress={() => navigation.goBack()}>
             <Feather name="arrow-left" size={25} color={colors.white} />
           </Pressable>
-          <View style={styles.searchWrapper}>
+          {/* <View style={styles.searchWrapper}>
             <SVGSearch />
             <TextInput
               placeholder="Search for items or cartListData"
@@ -101,7 +112,7 @@ const OrderList = ({navigation, route}: {navigation: any; route: any}) => {
             />
           </View>
 
-          <Feather name="bell" size={32} color={colors.white} />
+          <Feather name="bell" size={32} color={colors.white} /> */}
         </View>
       </View>
     );
@@ -109,7 +120,7 @@ const OrderList = ({navigation, route}: {navigation: any; route: any}) => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <Loader isLoading={isLoading} />
-      {headerComponent()}
+      {/* {headerComponent()} */}
       {renderTitle()}
       <FlatList
         style={styles.container}

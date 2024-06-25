@@ -1,14 +1,18 @@
 import React, {useEffect, useState} from 'react';
 import {
   Alert,
+  Dimensions,
   FlatList,
   KeyboardAvoidingView,
   ListRenderItem,
+  Modal,
   Platform,
   SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from 'react-native';
 import {useTheme} from '@react-navigation/native';
@@ -32,6 +36,10 @@ import RNFS from 'react-native-fs';
 import {RootState} from 'store';
 import {catalogCreate, catalogUpdate} from 'store/slices/catalogSlice';
 import {IInputs} from 'utils/interface';
+import helpers from '../utils/helpers';
+import SelectDropdown from 'react-native-select-dropdown';
+
+const windowWidth = Dimensions.get('window').width;
 
 const NewCatalogScreen = ({
   navigation,
@@ -44,6 +52,21 @@ const NewCatalogScreen = ({
   const dispatch = useAppDispatch();
   const {colors, fonts} = useTheme();
   const styles = Styles({colors, fonts});
+  const {currentUser} = useAppSelector((state: RootState) => state.auth);
+  const [isPopupVisible, setPopupVisible] = useState(false);
+
+  const closePopup = () => {
+    setPopupVisible(false);
+  };
+
+  useEffect(() => {
+    if (helpers.getBusinessInfoStatus(currentUser)) {
+      setPopupVisible(true);
+    } else {
+      setPopupVisible(false);
+    }
+  }, []);
+
   const [input, setInput] = useState([
     {
       order: 0,
@@ -60,6 +83,25 @@ const NewCatalogScreen = ({
     {
       order: 1,
       label: 'Select Category',
+      placeholder: '',
+      value: '',
+      error: false,
+      fixLabel: true,
+      mandatory: 1,
+      errorText: 'Please choose category',
+      key: 'productCategory',
+      type: 'select',
+      items: globalHelpers?.productCategories?.map(item => {
+        return {
+          id: item,
+          title: item,
+          value: false,
+        };
+      }),
+    },
+    {
+      order: 2,
+      label: 'Select Unit type',
       placeholder: '',
       value: '',
       error: false,
@@ -87,7 +129,7 @@ const NewCatalogScreen = ({
       ],
     },
     {
-      order: 2,
+      order: 3,
       label: 'Select Availability',
       placeholder: '',
       value: true,
@@ -101,7 +143,7 @@ const NewCatalogScreen = ({
       type: 'switch',
     },
     {
-      order: 3,
+      order: 4,
       label: 'Enter Price(In Rs.)',
       placeholder: '',
       value: '',
@@ -114,7 +156,7 @@ const NewCatalogScreen = ({
       keyboardType: 'numeric',
     },
     {
-      order: 4,
+      order: 5,
       label: 'Enter Description',
       placeholder: '',
       value: '',
@@ -127,7 +169,7 @@ const NewCatalogScreen = ({
       multiline: true,
     },
     {
-      order: 5,
+      order: 6,
       label: 'Upload Image',
       subLabel: '(Min 1 & Max 5)',
       placeholder: 'Upload File',
@@ -155,8 +197,9 @@ const NewCatalogScreen = ({
     if (catalogData) {
       const inputVal = input;
       inputVal[0].value = catalogData?.name;
-      inputVal[1].value = catalogData?.category;
-      const items = inputVal[1].items;
+      inputVal[1].value = catalogData?.productCategory;
+      inputVal[2].value = catalogData?.category;
+      const items = inputVal[2].items;
       if (items) {
         let updatedItems = items.map((data, index) =>
           data.title === catalogData?.category
@@ -164,15 +207,23 @@ const NewCatalogScreen = ({
             : {...data, value: false},
         );
         // items[itemIndex].value = !items[itemIndex].value;
-        inputVal[1].items = updatedItems;
+        inputVal[2].items = updatedItems;
       }
       let imgUrls = catalogData?.imageUrl?.map((item: any) => {
-        return {url: item};
+        return {
+          imageType: item?.imageType,
+          imageTitle: item?.imageTitle,
+          imageDescription: item?.imageDescription,
+          profilePicture: item?.profilePicture,
+          imageUrl: item?.imageUrl,
+        };
       });
-      inputVal[2].value = catalogData?.available;
-      inputVal[3].value = catalogData?.unitPrice;
-      inputVal[4].value = catalogData?.description;
-      inputVal[5].value = imgUrls;
+
+      console.log('data?.imageTitle', imgUrls);
+      inputVal[3].value = catalogData?.available;
+      inputVal[4].value = catalogData?.unitPrice;
+      inputVal[5].value = catalogData?.description;
+      inputVal[6].value = imgUrls;
       setInput(() => [...inputVal]);
     }
   }, [catalogData]);
@@ -226,44 +277,71 @@ const NewCatalogScreen = ({
     }
   };
 
-  const fileSelected = async (key: number, filePath: any) => {
+  const fileSelected = async (key: number, filePaths: any[]) => {
     setLoading(prevLoading => !prevLoading);
-    const fileContent = await RNFS.readFile(filePath[0].uri, 'base64');
-
-    const params = {
-      Bucket: 'ayikos3bucket',
-      Key: `images/${new Date().toISOString()}_${filePath[0].fileName}`,
-      Body: Buffer.from(fileContent, 'base64'),
-      ContentType: filePath[0].type,
-    };
-
-    console.log('params', params);
-
-    s3.upload(params, (err: any, data: {Location: any}) => {
-      if (err) {
-        console.log('Error uploading to S3:', err);
-      } else {
-        if (key !== undefined) {
-          const inputVal = input;
-          let doctValue = inputVal[key].value;
-          doctValue.push({
-            name: filePath[0].fileName,
-            url: data.Location,
+    try {
+      const uploadPromises = filePaths.map(async (filePath, index) => {
+        const fileContent = await RNFS.readFile(filePath.uri, 'base64');
+        const params = {
+          Bucket: 'ayikos3bucket',
+          Key: `images/${new Date().toISOString()}_${filePath.fileName}`,
+          Body: Buffer.from(fileContent, 'base64'),
+          ContentType: filePath.type,
+        };
+        console.log('Uploading file:', filePath.fileName);
+        return new Promise((resolve, reject) => {
+          s3.upload(params, (err: any, data: {Location: any}) => {
+            if (err) {
+              console.log('Error uploading to S3:', err);
+              reject(err);
+            } else {
+              console.log('Upload successful:', data.Location);
+              resolve(data.Location);
+            }
+          }).on('httpUploadProgress', progress => {
+            const percentUploaded = Math.round(
+              (progress.loaded / progress.total) * 100,
+            );
+            console.log(
+              `Upload progress for file ${index + 1}: ${percentUploaded}%`,
+            );
+            // You can use this progress information to update your UI or perform other actions
           });
-          inputVal[key].value = doctValue;
-          inputVal[key].error = false;
-          setInput(() => [...inputVal]);
-        }
-        console.log('Upload successful:', data.Location);
-        setLoading(prevLoading => !prevLoading);
-      }
-    }).on('httpUploadProgress', progress => {
-      const percentUploaded = Math.round(
-        (progress.loaded / progress.total) * 100,
-      );
-      console.log(`Upload progress: ${percentUploaded}%`);
-      // You can use this progress information to update your UI or perform other actions
-    });
+        });
+      });
+
+      Promise.all(uploadPromises)
+        .then(uploadedUrls => {
+          console.log('All files uploaded successfully:', uploadedUrls);
+          if (key !== undefined) {
+            const inputVal = input;
+            let doctValue = inputVal[key].value;
+            uploadedUrls.forEach((url, index) => {
+              doctValue.push({
+                name: filePaths[index].fileName,
+                url: url,
+                imageType: filePaths[index].type,
+                imageTitle: filePaths[index].fileName,
+                imageDescription: 'Nothing',
+                profilePicture: false,
+                imageUrl: url,
+              });
+            });
+            inputVal[key].value = doctValue;
+            inputVal[key].error = false;
+            setInput(() => [...inputVal]);
+          }
+        })
+        .catch(error => {
+          console.error('Error uploading files:', error);
+        })
+        .finally(() => {
+          setLoading(prevLoading => !prevLoading);
+        });
+    } catch (error) {
+      console.error('Error reading file content:', error);
+      setLoading(prevLoading => !prevLoading);
+    }
   };
 
   const renderItem: ListRenderItem<IInputs> = ({item, index}) => {
@@ -310,7 +388,7 @@ const NewCatalogScreen = ({
               <View key={fileIndex} style={styles.filesContainer}>
                 <View style={{flex: 1}}>
                   <Text numberOfLines={1} style={styles.fileName}>
-                    {data.name}
+                    {data.imageTitle}
                   </Text>
                   <View style={styles.progress} />
                 </View>
@@ -326,10 +404,58 @@ const NewCatalogScreen = ({
       );
     } else if (item.type === 'switch') {
       return <FSwitch {...item} switchClick={() => onSwitchClick(index)} />;
+    } else if (item.type === 'select') {
+      return (
+        <>
+          <SelectDropdown
+            data={item.items}
+            onSelect={(selectedItem, itemIndex) => {
+              console.log(selectedItem, itemIndex);
+              onRadioClick(index, itemIndex);
+            }}
+            renderButton={(selectedItem, isOpened) => {
+              return (
+                <View
+                  style={{
+                    ...styles.dropdownButtonStyle,
+                    borderColor: item.error ? 'red' : 'black',
+                  }}>
+                  <Text style={styles.dropdownButtonTxtStyle}>
+                    {item.value ||
+                      (selectedItem && selectedItem.title) ||
+                      'Select Category'}
+                  </Text>
+                </View>
+              );
+            }}
+            renderItem={(obj, index, isSelected) => {
+              return (
+                <View
+                  style={{
+                    ...styles.dropdownItemStyle,
+                    ...(isSelected && {backgroundColor: '#D2D9DF'}),
+                  }}>
+                  {/* <Icon name={item.icon} style={styles.dropdownItemIconStyle} /> */}
+                  <Text style={styles.dropdownItemTxtStyle}>{obj.title}</Text>
+                </View>
+              );
+            }}
+            showsVerticalScrollIndicator={false}
+            dropdownStyle={styles.dropdownMenuStyle}
+          />
+          <View>
+            <Text style={styles.message}>
+              {item.error ? item.errorText : ''}
+            </Text>
+          </View>
+        </>
+      );
     } else {
       null;
     }
   };
+
+  console.log('input saveClick', JSON.stringify(input, null, 2));
 
   const saveClick = () => {
     const inputValid = globalHelpers.validation(input);
@@ -338,12 +464,21 @@ const NewCatalogScreen = ({
     if (inputValid.valid) {
       const payload = {
         name: input[0].value,
-        category: input[1].value,
-        available: input[2].value,
-        unitPrice: input[3].value,
-        description: input[4].value,
+        productCategory: input[1].value,
+        category: input[2].value,
+        available: input[3].value,
+        unitPrice: input[4].value,
+        description: input[5].value,
         quantity: 1,
-        imageUrl: input[5].value?.map((item: {url: any}) => item?.url),
+        imageUrl: input[6].value?.map(img => {
+          return {
+            imageType: img?.imageType,
+            imageTitle: img?.imageTitle,
+            imageDescription: img?.imageDescription,
+            profilePicture: img?.profilePicture,
+            imageUrl: img?.imageUrl,
+          };
+        }),
       };
       console.log('input saveClick', JSON.stringify(payload, null, 2));
       if (catalogData?.id) {
@@ -366,6 +501,39 @@ const NewCatalogScreen = ({
       });
     }
   };
+
+  const renderConfirmationPopup = () => {
+    return (
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={isPopupVisible}
+        onRequestClose={closePopup}>
+        {/* <TouchableWithoutFeedback onPress={closePopup}> */}
+        <View style={styles.modalBackground}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.messageText}>
+              Please complete the Business info before proceeding to the next
+              step.
+            </Text>
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity
+                style={styles.button}
+                onPress={() => {
+                  setPopupVisible(false);
+                  navigation.goBack();
+                  navigation.navigate('AddBusinessInfo');
+                }}>
+                <Text style={styles.buttonText}>Continue</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+        {/* </TouchableWithoutFeedback> */}
+      </Modal>
+    );
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView
@@ -419,6 +587,7 @@ const NewCatalogScreen = ({
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+      {renderConfirmationPopup()}
     </SafeAreaView>
   );
 };
@@ -450,6 +619,12 @@ const Styles = ({colors, fonts}: any) =>
     },
     footerBtnContainer: {
       flex: 1,
+    },
+    message: {
+      ...fonts.regular,
+      color: colors.red,
+      marginLeft: 5,
+      marginBottom: 8,
     },
     searchWrapper: {
       borderRadius: 26,
@@ -577,5 +752,101 @@ const Styles = ({colors, fonts}: any) =>
       color: colors.primary,
       fontWeight: 'bold',
       textDecorationLine: 'underline',
+    },
+    modalView: {
+      margin: 20,
+      backgroundColor: 'white',
+      borderRadius: 20,
+      padding: 35,
+      height: 200,
+      width: windowWidth - 30,
+      alignItems: 'center',
+      shadowColor: '#000',
+      shadowOffset: {
+        width: 0,
+        height: 2,
+      },
+      shadowOpacity: 0.25,
+      shadowRadius: 4,
+      elevation: 5,
+    },
+    modalBackground: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    },
+    modalContainer: {
+      backgroundColor: 'white',
+      padding: 20,
+      borderRadius: 10,
+      alignItems: 'center',
+    },
+    messageText: {
+      marginBottom: 20,
+      fontSize: 18,
+      textAlign: 'center',
+    },
+    buttonContainer: {
+      flexDirection: 'row',
+    },
+    button: {
+      backgroundColor: colors.primary,
+      paddingVertical: 10,
+      paddingHorizontal: 20,
+      borderRadius: 5,
+      marginHorizontal: 10,
+    },
+    buttonText: {
+      color: 'white',
+      fontSize: 16,
+    },
+    dropdownButtonStyle: {
+      width: '100%',
+      height: 58,
+      marginBottom: 20,
+      backgroundColor: 'transparent',
+      borderRadius: 12,
+      borderColor: 'black',
+      borderWidth: 1,
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: 12,
+    },
+    dropdownButtonTxtStyle: {
+      flex: 1,
+      fontSize: 18,
+      fontWeight: '500',
+      color: '#151E26',
+    },
+    dropdownButtonArrowStyle: {
+      fontSize: 28,
+    },
+    dropdownButtonIconStyle: {
+      fontSize: 28,
+      marginRight: 8,
+    },
+    dropdownMenuStyle: {
+      backgroundColor: '#E9ECEF',
+      borderRadius: 8,
+    },
+    dropdownItemStyle: {
+      width: '100%',
+      flexDirection: 'row',
+      paddingHorizontal: 12,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingVertical: 8,
+    },
+    dropdownItemTxtStyle: {
+      flex: 1,
+      fontSize: 18,
+      fontWeight: '500',
+      color: '#151E26',
+    },
+    dropdownItemIconStyle: {
+      fontSize: 28,
+      marginRight: 8,
     },
   });

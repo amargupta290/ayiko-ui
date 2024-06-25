@@ -17,6 +17,7 @@ import React, {useEffect, useState} from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Button,
   FlatList,
   Image,
   Modal,
@@ -26,6 +27,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
@@ -36,23 +38,25 @@ import {
   getLocalCart,
   sendForApproval,
   setCarItem,
+  setCartToNull,
 } from 'store/slices/CartSlice';
 import {useDispatch} from 'react-redux';
 import {getCustomerByToken, getSupplier} from 'store/slices/authSlice';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import LocationHeader from 'components/LocationHeader';
+import {SCREEN_WIDTH} from '@gorhom/bottom-sheet';
+import {scale} from 'react-native-size-matters';
 
-const CartScreen = ({navigation, route}: {navigation: any; route: any}) => {
+const CartScreen = ({navigation}: {navigation: any}) => {
   const {colors, fonts} = useTheme();
   const dispatch = useDispatch();
   const styles = Styles({colors, fonts});
   const [cartData, setCartData] = useState(null);
-  const [cartId, setCartId] = useState(route?.params?.id || null);
+  const [cartId] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [sendRequest, setSendRequest] = useState(false);
   const [emptyCartVisible, setEmptyCartVisible] = useState(false);
   const [paymentModal, setPaymentModal] = useState(false);
-  const [intervalId, setIntervalId] = useState(null);
-  const [pinCode, setPinCode] = useState(null);
   const [address, setAddress] = useState(
     'Behind ganesh temple, New Sangvi, Pune, 411029',
   );
@@ -68,14 +72,15 @@ const CartScreen = ({navigation, route}: {navigation: any; route: any}) => {
     (state: RootState) => state.cart,
   );
 
-  const {customerData, supplierData} = useAppSelector(
-    (state: RootState) => state.auth,
-  );
+  const {customerData, supplierData, userLocation, currentUser} =
+    useAppSelector((state: RootState) => state.auth);
 
-  useEffect(() => {
-    if (route?.params?.id && (!cartId || cartId !== route?.params?.id))
-      setCartId(route?.params?.id);
-  }, [navigation, cartId, route?.params?.id]);
+  // useEffect(() => {
+  //   if (route?.params?.id && (!cartId || cartId !== route?.params?.id))
+  //     setCartId(route?.params?.id);
+  // }, [navigation, cartId, route?.params?.id]);
+
+  console.log('currentUser!!!', currentUser);
 
   const getTotalPrice = (cartItems: any) => {
     return cartItems.reduce(
@@ -96,6 +101,19 @@ const CartScreen = ({navigation, route}: {navigation: any; route: any}) => {
         dispatch(getCartDetails(cartId));
       }
       dispatch(getCustomerByToken());
+
+      // {
+      //   id: '3fa85f64-5717-4562-b3fc-2c963f66afa6',
+      //   addressLine1: address?.addressLine1,
+      //   addressLine2: address?.addressLine2,
+      //   city: address?.city,
+      //   state: address?.state,
+      //   country: address?.country,
+      //   postalCode: address?.pincode,
+      //   ownerId: '3fa85f64-5717-4562-b3fc-2c963f66afa6',
+      //   ownerType: 'string',
+      //   default: true,
+      // },
     });
 
     // Remove the listener when you are done
@@ -144,8 +162,10 @@ const CartScreen = ({navigation, route}: {navigation: any; route: any}) => {
     if (cartDetailsData) {
       setCartData(await transformData(cartDetailsData));
       setEmptyCartVisible(false);
+      await AsyncStorage.removeItem('cart');
     } else {
       if (checkCarData) {
+        dispatch(setCartToNull());
         setCartData(checkCarData);
         setEmptyCartVisible(false);
       } else {
@@ -162,35 +182,18 @@ const CartScreen = ({navigation, route}: {navigation: any; route: any}) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cartDetailsData]);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (sendForApprovalData) {
       setModalVisible(false);
-      setCartId(sendForApprovalData?.id);
+      // setCartId(sendForApprovalData?.id);
       dispatch(getCartDetails(sendForApprovalData?.id));
       AsyncStorage.removeItem('cart');
+      getCartData();
+      dispatch(setCartToNull());
+      navigation.navigate('OrderDetailScreen', {id: sendForApprovalData?.id});
     }
   }, [sendForApprovalData]);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (
-        cartId &&
-        (sendForApprovalData || cartDetailsData?.status !== 'REJECTED')
-      ) {
-        dispatch(getCartDetails(sendForApprovalData?.id ?? cartId));
-        console.log('HOLA 111111');
-      }
-    }, 10000);
-    return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // console.log(
-  //   'sendForApprovalData?.id',
-  //   JSON.stringify(cartData, null, 2),
-  //   JSON.stringify(cartDetailsData, null, 2),
-  //   route?.params?.id,
-  // );
 
   const handleRequestApproval = (cartData: any) => {
     let products = Object.values(cartData?.items ?? {})?.map((item: any) => {
@@ -204,6 +207,7 @@ const CartScreen = ({navigation, route}: {navigation: any; route: any}) => {
       customerId: customerData?.id,
       items: products,
       status: 'PENDING',
+      deliveryAddress: userLocation,
     };
     setSendRequest(true);
     dispatch(sendForApproval(params));
@@ -224,7 +228,11 @@ const CartScreen = ({navigation, route}: {navigation: any; route: any}) => {
                     <Image
                       source={
                         item?.imageUrl?.length
-                          ? {uri: item?.imageUrl[0]}
+                          ? {
+                              uri:
+                                item?.imageUrl[0]?.imageUrl ??
+                                AppImages.noImg.source,
+                            }
                           : AppImages.noImg.source
                       }
                       style={styles.orderItemImage}
@@ -247,7 +255,8 @@ const CartScreen = ({navigation, route}: {navigation: any; route: any}) => {
                       await setCarItem(item, null, item.quantity, getCartData);
                       getCartData();
                     }}
-                    disabled={cartDetailsData?.status || item.quantity <= 0}>
+                    // disabled={cartDetailsData?.status || item.quantity <= 0}
+                  >
                     <Feather name="minus" size={16} color={colors.black} />
                   </TouchableOpacity>
 
@@ -257,7 +266,8 @@ const CartScreen = ({navigation, route}: {navigation: any; route: any}) => {
                       await setCarItem(item, 'add', item.quantity, getCartData);
                       getCartData();
                     }}
-                    disabled={cartDetailsData?.status}>
+                    // disabled={cartDetailsData?.status}
+                  >
                     <Feather name="plus" size={16} color={colors.black} />
                   </TouchableOpacity>
                 </View>
@@ -341,23 +351,15 @@ const CartScreen = ({navigation, route}: {navigation: any; route: any}) => {
     );
   };
 
+  console.log('Cart Address', address);
+
   const header = () => {
     return (
       <View style={styles.headerContainer}>
-        <TouchableOpacity
-          style={styles.locationContainer}
-          onPress={() => navigation.navigate('AddressScreen')}>
-          <View style={styles.locationheader}>
-            <Feather name="map-pin" size={16} color={colors.black} />
-            <Text style={styles.locationTitle}>
-              {pinCode ? pinCode : 'Delivery Location'}
-            </Text>
-            <Feather name="chevron-down" size={16} color={colors.black} />
-          </View>
-          <Text style={styles.locationText} numberOfLines={1}>
-            {address}
-          </Text>
-        </TouchableOpacity>
+        <LocationHeader
+          navigation={navigation}
+          addressSetter={(v: React.SetStateAction<string>) => setAddress(v)}
+        />
       </View>
     );
   };
@@ -365,9 +367,16 @@ const CartScreen = ({navigation, route}: {navigation: any; route: any}) => {
   const renderSendRequestView = () => {
     return (
       <View>
-        <Text>Send Request to supplier to check availability</Text>
+        <Text style={{color: colors.black}}>
+          Send Request to supplier to check availability
+        </Text>
         {!loading ? (
-          <TouchableOpacity onPress={() => setModalVisible(!modalVisible)}>
+          <TouchableOpacity
+            onPress={() =>
+              !!currentUser
+                ? setModalVisible(!modalVisible)
+                : navigation.navigate('Account')
+            }>
             <View style={styles.sendRequestButton}>
               <Text style={styles.buttonText}>Send Request</Text>
             </View>
@@ -470,26 +479,29 @@ const CartScreen = ({navigation, route}: {navigation: any; route: any}) => {
             // Alert.alert('Modal has been closed.');
             setEmptyCartVisible(!emptyCartVisible);
           }}>
-          <View style={styles.centeredView}>
-            <View style={styles.modalView}>
-              <Feather name="shopping-cart" size={45} />
-              <Text style={styles.headingText}>No Items in Cart</Text>
+          <TouchableWithoutFeedback onPress={() => setEmptyCartVisible(false)}>
+            <View style={styles.centeredView}>
+              <View style={styles.modalView}>
+                <Feather name="shopping-cart" size={45} />
+                <Text style={styles.headingText}>No Items in Cart</Text>
 
-              <View style={styles.footerButton}>
-                <FButton
-                  label="Add Items"
-                  buttonClick={() => {
-                    setEmptyCartVisible(!emptyCartVisible);
-                    navigation.goBack();
-                  }}
-                  containerStyle={{
-                    ...styles.footerBtnContainer,
-                    ...styles.cancelBtn,
-                  }}
-                />
+                <View style={styles.footerButton}>
+                  <FButton
+                    label="Add Items"
+                    buttonClick={() => {
+                      setEmptyCartVisible(!emptyCartVisible);
+                      navigation.goBack();
+                    }}
+                    containerStyle={{
+                      ...styles.footerBtnContainer,
+                      ...styles.cancelBtn,
+                      backgroundColor: colors.primary,
+                    }}
+                  />
+                </View>
               </View>
             </View>
-          </View>
+          </TouchableWithoutFeedback>
         </Modal>
       </View>
     );
@@ -512,6 +524,21 @@ const CartScreen = ({navigation, route}: {navigation: any; route: any}) => {
               <Text style={styles.modalDescriptionText}>
                 You want to send request to the supplier?
               </Text>
+              <Text style={styles.modalDescriptionText}>
+                Delivery address: {userLocation?.address ?? 'Not found'}
+              </Text>
+              <Button
+                title="Change Address"
+                onPress={() => {
+                  setModalVisible(!modalVisible);
+                  navigation.navigate('AddressScreen');
+                }}
+                // containerStyle={[
+                //   // styles.footerBtnContainer,
+                //   {width: scale(150), height: scale(50), top: 10},
+                //   {backgroundColor: colors.primary},
+                // ]}
+              />
               {loading && <ActivityIndicator />}
               <View style={styles.footerButton}>
                 <FButton
@@ -525,6 +552,7 @@ const CartScreen = ({navigation, route}: {navigation: any; route: any}) => {
                 <FButton
                   label="Yes"
                   buttonClick={() => handleRequestApproval(cartData)}
+                  disabled={!!userLocation?.address}
                   containerStyle={[
                     styles.footerBtnContainer,
                     {backgroundColor: colors.primary},
@@ -569,8 +597,8 @@ const CartScreen = ({navigation, route}: {navigation: any; route: any}) => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <Loader isLoading={loading} />
+      {header()}
       <ScrollView style={styles.content}>
-        {header()}
         {/* {orderDetailCard()} */}
         {cartData && (
           <>
@@ -584,7 +612,7 @@ const CartScreen = ({navigation, route}: {navigation: any; route: any}) => {
                 <FButton
                   label="Place Order"
                   buttonClick={() => setPaymentModal(true)}
-                  disabled={cartDetailsData?.status !== 'APPROVED'}
+                  disabled={!!(cartDetailsData?.status !== 'APPROVED')}
                   containerStyle={styles.footerBtnContainer}
                 />
               </View>
@@ -614,7 +642,6 @@ const Styles = ({colors, fonts}: any) =>
       flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
-      // marginTop: 22,
     },
     footerButton: {
       marginTop: 50,
@@ -660,10 +687,9 @@ const Styles = ({colors, fonts}: any) =>
       backgroundColor: colors.subHeading,
     },
     headerContainer: {
-      marginVertical: 10,
-      // backgroundColor: colors.white,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.gray,
+      paddingTop: 10,
+      width: SCREEN_WIDTH,
+      backgroundColor: colors.primary,
     },
     grayBreaker: {
       borderBottomWidth: 1,
@@ -701,7 +727,6 @@ const Styles = ({colors, fonts}: any) =>
     },
     locationText: {
       ...fonts.description,
-      // color: colors.gray,
       lineHeight: 12,
       paddingLeft: 24,
       paddingBottom: 10,
@@ -909,9 +934,9 @@ const Styles = ({colors, fonts}: any) =>
       paddingVertical: 4,
       borderRadius: 5,
       height: 36,
-      backgroundColor: 'transparent',
+      backgroundColor: 'white',
       borderWidth: 1,
-      borderBlockColor: colors.primary,
+      borderColor: colors.primary,
       elevation: 8,
       alignItems: 'center',
       flexDirection: 'row',

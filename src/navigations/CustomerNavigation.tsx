@@ -1,6 +1,6 @@
 import React from 'react';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
-import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
+import {Image, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import SupplierListScreen from '../screens/SuppliersList';
 import AddBusinessInfo from 'screens/AddBusinessInfo';
 import SupplierScreen from 'screens/SupplierScreen';
@@ -18,6 +18,8 @@ import Feather from 'react-native-vector-icons/Feather';
 import {useAppSelector} from 'hooks';
 import {RootState} from 'store';
 import OrderDetail from 'screens/OrderDetail';
+import {Address} from 'screens/Address';
+import ManageAddress from 'components/ManageAddress';
 
 const Stack = createNativeStackNavigator();
 
@@ -56,7 +58,15 @@ const CustomerNavigation = () => {
           headerRight: () => (
             <TouchableOpacity
               onPress={() => navigation.navigate('UserProfileScreen')}>
-              <SVGProfilePic />
+              {/* <SVGProfilePic /> */}
+              <Image
+                source={require('../assets/image/profilePic.png')}
+                style={{
+                  resizeMode: 'cover',
+                  width: 50,
+                  height: 50,
+                }}
+              />
             </TouchableOpacity>
           ),
         })}
@@ -102,23 +112,65 @@ const CustomerNavigation = () => {
       <Stack.Screen
         name="OrderList"
         component={OrderList}
-        options={{headerShown: false}}
+        options={{
+          title: 'My Orders',
+        }}
       />
       <Stack.Screen
-        name="OrderDetailScreen"
-        component={OrderDetail}
+        name="AddressScreen"
+        component={Address}
+        options={({navigation, route}) => ({
+          // eslint-disable-next-line react/no-unstable-nested-components
+          headerTitle: () => (
+            <View>
+              <Text style={[styles.headerTitleStyle]}>Addresses</Text>
+            </View>
+          ),
+          headerRight: () => {
+            return (
+              <>
+                <View></View>
+              </>
+            ); /* <HeaderButtons CustomComponent={AddTo*/
+          },
+          headerShown: true,
+        })}
+      />
+      <Stack.Screen
+        name="ManageAddressScreen"
+        component={ManageAddress}
         options={({navigation, route}) => ({
           headerLeft: () => {
             return (
               <TouchableOpacity
                 // style={{width: '35%'}}
                 onPress={() => {
-                  navigation.goBack();
+                  navigation.navigate('Home');
                 }}>
                 <Feather name="arrow-left" size={25} color={colors.white} />
               </TouchableOpacity>
             );
           },
+          // eslint-disable-next-line react/no-unstable-nested-components
+          headerTitle: () => (
+            <View>
+              <Text style={[styles.headerTitleStyle]}>Manage Address</Text>
+            </View>
+          ),
+          headerRight: () => {
+            return (
+              <>
+                <View></View>
+              </>
+            ); /* <HeaderButtons CustomComponent={AddTo*/
+          },
+          headerShown: true,
+        })}
+      />
+      <Stack.Screen
+        name="OrderDetailScreen"
+        component={OrderDetail}
+        options={({navigation, route}) => ({
           // eslint-disable-next-line react/no-unstable-nested-components
           headerTitle: () => (
             <View>

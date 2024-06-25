@@ -28,13 +28,19 @@ const ImageComp = (props: ImageInterface) => {
   const {colors, fonts} = useTheme();
   const styles = Styles({colors, fonts});
   const [isLoading, setIsLoading] = useState(
-    props.source && props.source.uri ? true : false,
+    props.source && props.source.uri && typeof props.source.uri == 'string'
+      ? true
+      : false,
   );
-  console.log('props.source', props.source);
+  // console.log('props.source', props.source);
   return (
     <View>
       <Image
-        source={props.source}
+        source={
+          typeof props.source.uri == 'string'
+            ? props.source
+            : AppImages.noImg.source
+        }
         style={props.imageStyle}
         resizeMode={props.resizeMode}
         onLoadStart={() => {

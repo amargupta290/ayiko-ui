@@ -1,6 +1,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.BACKGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
 
     <application
       android:fitsSystemWindows="true"
@@ -11,6 +18,47 @@
       android:allowBackup="false"
       android:theme="@style/AppTheme"
       android:usesCleartextTraffic="true">
+      <meta-data
+    android:name="com.google.android.gms.version"
+    android:value="@integer/google_play_services_version" />
+    <meta-data
+    android:name="com.google.android.geo.API_KEY"
+    android:value="AIzaSyBIHlJ75gl-Pl8S4o-jmjdZkrIUp3mvMx4" />
+      <service
+
+         android:name="com.ayiko.ExampleService"
+
+         android:enabled="true"
+
+         android:exported="false" >
+
+     </service>
+
+     <service
+
+         android:name="com.ayiko.ExampleEventService">
+
+     </service>
+
+     <receiver
+
+         android:name="com.ayiko.BootReceiver"
+
+         android:enabled="true"
+
+         android:exported="true"
+
+         android:permission="android.permission.RECEIVE_BOOT_COMPLETED">
+
+         <intent-filter>
+
+             <action android:name="android.intent.action.BOOT_COMPLETED" />
+
+             <category android:name="android.intent.category.DEFAULT" />
+
+         </intent-filter>
+
+     </receiver>
       <activity
         android:fitsSystemWindows="true"
         android:name=".MainActivity"
@@ -25,4 +73,9 @@
         </intent-filter>
       </activity>
     </application>
+    <queries>
+          <intent>
+            <action android:name="android.intent.action.DIAL" />
+          </intent>
+        </queries>
 </manifest>

@@ -3,6 +3,7 @@ import {
   Alert,
   FlatList,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   ScrollView,
   StyleSheet,
@@ -35,6 +36,9 @@ const LoginScreen = ({navigation, route}: {navigation: any; route: any}) => {
   const dispatch = useAppDispatch();
   const {colors, fonts} = useTheme();
   const styles = Styles({colors, fonts});
+  const termsAndCondition = 'https://ayiko.net/TermsAndCondition.html';
+  const privacyPolicy = 'https://ayiko.net/privacyPolicy.html';
+  const aboutUs = 'https://ayiko.net/aboutUs.html';
   const [input, setInput] = useState([
     {
       order: 0,
@@ -174,11 +178,30 @@ const LoginScreen = ({navigation, route}: {navigation: any; route: any}) => {
           <Text style={styles.account}>
             Don’t have an account?{' '}
             <Text
-              style={styles.signUp}
+              style={styles.linkText}
               onPress={() => navigation.navigate('SignUpWelcome')}>
               Sign Up
             </Text>
           </Text>
+          <View style={styles.bottomText}>
+            <Text
+              style={styles.signUp}
+              onPress={() => Linking.openURL(aboutUs)}>
+              About Us
+            </Text>
+            <Text> | </Text>
+            <Text
+              style={styles.signUp}
+              onPress={() => Linking.openURL(privacyPolicy)}>
+              Privacy & policy
+            </Text>
+            <Text> | </Text>
+            <Text
+              style={styles.signUp}
+              onPress={() => Linking.openURL(termsAndCondition)}>
+              Terms & Condition
+            </Text>
+          </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -235,8 +258,16 @@ const Styles = ({colors, fonts}: any) =>
       textDecorationLine: 'underline',
     },
     signUp: {
+      ...fonts.subHeading,
+      color: colors.primary,
+      fontWeight: 'bold',
+      fontSize: 12,
+      textDecorationLine: 'underline',
+    },
+    linkText: {
       color: colors.primary,
       fontWeight: 'bold',
       textDecorationLine: 'underline',
     },
+    bottomText: {flexDirection: 'row', top: 10, justifyContent: 'center'},
   });

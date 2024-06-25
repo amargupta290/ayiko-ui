@@ -35,7 +35,7 @@ import {catalogCreate, catalogUpdate} from 'store/slices/catalogSlice';
 import {IInputs} from 'utils/interface';
 import {AddIconWithBg, CurrentLocationIcon} from 'assets/image';
 import {updateSupplier} from 'store/slices/SupplierSlice';
-import {getSupplierByToken} from 'store/slices/authSlice';
+import {getSupplierByToken, setCurrentUser} from 'store/slices/authSlice';
 
 const AddBusinessInfo = ({
   navigation,
@@ -119,7 +119,8 @@ const AddBusinessInfo = ({
   useEffect(() => {
     if (supplierDetails) {
       const inputVal = input;
-      inputVal[0].value = supplierDetails?.businessName;
+      inputVal[0].value =
+        supplierDetails?.businessName ?? supplierDetails?.companyName;
       inputVal[1].value = supplierDetails?.businessDescription;
       inputVal[3].value = [{url: supplierDetails?.imageUrl}];
       setInput(() => [...inputVal]);
@@ -254,6 +255,7 @@ const AddBusinessInfo = ({
       const payload = {
         id: supplierDetails?.id,
         businessName: input[0].value,
+        companyName: input[0].value,
         businessDescription: input[1].value,
         businessImages: [input[3].value[0]?.url],
       };
@@ -261,6 +263,7 @@ const AddBusinessInfo = ({
       dispatch(updateSupplier(payload)).then(async (data: any) => {
         if (data?.payload) {
           setAlertShow(prevAlertShow => !prevAlertShow);
+          dispatch(getSupplierByToken());
         } else {
           Alert.alert('Error', data?.payload?.messageDescription, [
             {text: 'OK', onPress: () => console.log('OK Pressed')},

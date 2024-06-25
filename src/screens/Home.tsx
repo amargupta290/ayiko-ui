@@ -10,6 +10,10 @@ import {
   Dimensions,
   Image,
   Pressable,
+  Platform,
+  PermissionsAndroid,
+  PermissionsIOS,
+  Alert,
 } from 'react-native';
 import {useTheme} from '@react-navigation/native';
 import Feather from 'react-native-vector-icons/Feather';
@@ -39,6 +43,10 @@ import {
 } from 'store/slices/DashboardSlice';
 import {ImageComp, Loader} from 'components';
 import {getCustomer} from 'store/slices/authSlice';
+import Permissions, {PERMISSIONS, check} from 'react-native-permissions';
+import Geolocation from '@react-native-community/geolocation';
+import helpers from 'utils/helpers';
+import LocationHeader from 'components/LocationHeader';
 
 const windowWidth = Dimensions.get('window').width;
 const windowHeight = Dimensions.get('window').height;
@@ -47,6 +55,7 @@ const HomeScreen = ({navigation, route}: {navigation: any; route: any}) => {
   const dispatch = useAppDispatch();
   const {colors, fonts} = useTheme();
   const styles = Styles({colors, fonts});
+  const [location, setLocation] = useState<any>(null);
   const isLoading = useAppSelector(
     (state: RootState) => state.dashboard.loading,
   );
@@ -132,6 +141,37 @@ const HomeScreen = ({navigation, route}: {navigation: any; route: any}) => {
     dispatch(popularProductsList());
   }, [dispatch]);
 
+  const getLocation = async () => {
+    if (Platform.ios === 'ios') {
+      const permissionStatus = await check(
+        PERMISSIONS.IOS.LOCATION_WHEN_IN_USE,
+      );
+      const coords =
+        permissionStatus == 'granted'
+          ? helpers.getLocation()
+          : await helpers.requestLocationPermission();
+
+      console.log('requestLocationPermissioncoords', coords);
+      setLocation(coords);
+    } else {
+      const permissionStatus = await check(
+        PERMISSIONS.ANDROID.ACCESS_COARSE_LOCATION,
+      );
+      const coords =
+        permissionStatus == 'granted'
+          ? helpers.getLocation()
+          : await helpers.requestLocationPermission();
+
+      console.log('requestLocationPermissioncoords', coords);
+      setLocation(coords);
+    }
+  };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    getLocation();
+  }, []);
+
   console.log('popularProducts', popularProducts);
 
   const renderSlide = ({item}) => {
@@ -210,7 +250,7 @@ const HomeScreen = ({navigation, route}: {navigation: any; route: any}) => {
               <Text style={styles.nearRHeading}>
                 {(supplier &&
                   supplier?.length > 1 &&
-                  supplier[1]?.companyName) ??
+                  supplier[1]?.businessName) ??
                   'Signature By Kitchen'}
               </Text>
               <Text style={styles.nearRSubHeading}>5 Km Away</Text>
@@ -227,29 +267,16 @@ const HomeScreen = ({navigation, route}: {navigation: any; route: any}) => {
       <>
         <View style={styles.headerContainer}>
           <View style={styles.header}>
-            <View style={styles.searchWrapper}>
+            {/* <View style={styles.searchWrapper}>
               <SVGSearch />
               <TextInput
                 placeholder="Search for item or supplier"
                 style={styles.searchInput}
               />
             </View>
-            <SVGNotification fill={colors.white} strokeWidth="2" />
+            <SVGNotification fill={colors.white} strokeWidth="2" /> */}
           </View>
-          <TouchableOpacity
-            style={styles.locationContainer}
-            onPress={() => navigation.navigate('AddressScreen')}>
-            <View style={styles.locationheader}>
-              <Feather name="map-pin" size={16} color={colors.white} />
-              <Text style={styles.locationTitle}>
-                {pinCode ? pinCode : 'Delivery Location'}
-              </Text>
-              <Feather name="chevron-down" size={16} color={colors.white} />
-            </View>
-            <Text style={styles.locationText} numberOfLines={1}>
-              {address}
-            </Text>
-          </TouchableOpacity>
+          <LocationHeader navigation={navigation} show />
         </View>
       </>
     );
@@ -274,17 +301,22 @@ const HomeScreen = ({navigation, route}: {navigation: any; route: any}) => {
                   })
                 }
                 key={index}>
-                <Image
+                <ImageComp
                   source={
                     item?.imageUrl?.length
-                      ? {uri: item?.imageUrl[0]}
+                      ? {
+                          uri:
+                            item?.imageUrl[0]?.imageUrl ??
+                            AppImages.noImg.source,
+                        }
                       : AppImages.noImg.source
                   }
-                  style={{
+                  imageStyle={{
                     height: 125,
                     width: 87,
                     marginBottom: 10,
                   }}
+                  resizeMode={'cover'}
                 />
                 <Text style={styles.nearRHeading}>{item?.name}</Text>
               </TouchableOpacity>

@@ -200,6 +200,7 @@ const SupplierSignUpScreen = ({navigation}: {navigation: any}) => {
     if (inputValid.valid) {
       const payload = {
         companyName: input[0].value,
+        businessName: input[0].value,
         ownerName: input[1].value,
         phoneNumber: `${input[2].countryCode} ${input[2].value}`,
         mobileMoneyNumber: `${input[3].countryCode} ${input[3].value}`,
@@ -229,7 +230,7 @@ const SupplierSignUpScreen = ({navigation}: {navigation: any}) => {
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         enabled
-        keyboardVerticalOffset={50}>
+        keyboardVerticalOffset={100}>
         <View style={styles.content}>
           <FlatList
             keyboardShouldPersistTaps="always"

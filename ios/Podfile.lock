@@ -343,6 +343,12 @@ PODS:
   - React-jsinspector (0.72.6)
   - React-logger (0.72.6):
     - glog
+  - react-native-blur (4.4.0):
+    - RCT-Folly (= 2021.07.22.00)
+    - React-Core
+  - react-native-geolocation (3.2.1):
+    - RCT-Folly (= 2021.07.22.00)
+    - React-Core
   - react-native-get-random-values (1.10.0):
     - React-Core
   - react-native-image-picker (7.1.0):
@@ -465,8 +471,10 @@ PODS:
     - React-Core
   - RNFS (2.20.0):
     - React-Core
-  - RNGestureHandler (2.15.0):
+  - RNGestureHandler (2.16.0):
     - RCT-Folly (= 2021.07.22.00)
+    - React-Core
+  - RNPermissions (4.1.5):
     - React-Core
   - RNReanimated (3.7.1):
     - RCT-Folly (= 2021.07.22.00)
@@ -529,6 +537,8 @@ DEPENDENCIES:
   - React-jsiexecutor (from `../node_modules/react-native/ReactCommon/jsiexecutor`)
   - React-jsinspector (from `../node_modules/react-native/ReactCommon/jsinspector`)
   - React-logger (from `../node_modules/react-native/ReactCommon/logger`)
+  - "react-native-blur (from `../node_modules/@react-native-community/blur`)"
+  - "react-native-geolocation (from `../node_modules/@react-native-community/geolocation`)"
   - react-native-get-random-values (from `../node_modules/react-native-get-random-values`)
   - react-native-image-picker (from `../node_modules/react-native-image-picker`)
   - react-native-maps (from `../node_modules/react-native-maps`)
@@ -555,6 +565,7 @@ DEPENDENCIES:
   - "RNCMaskedView (from `../node_modules/@react-native-masked-view/masked-view`)"
   - RNFS (from `../node_modules/react-native-fs`)
   - RNGestureHandler (from `../node_modules/react-native-gesture-handler`)
+  - RNPermissions (from `../node_modules/react-native-permissions`)
   - RNReanimated (from `../node_modules/react-native-reanimated`)
   - RNScreens (from `../node_modules/react-native-screens`)
   - RNSVG (from `../node_modules/react-native-svg`)
@@ -619,6 +630,10 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon/jsinspector"
   React-logger:
     :path: "../node_modules/react-native/ReactCommon/logger"
+  react-native-blur:
+    :path: "../node_modules/@react-native-community/blur"
+  react-native-geolocation:
+    :path: "../node_modules/@react-native-community/geolocation"
   react-native-get-random-values:
     :path: "../node_modules/react-native-get-random-values"
   react-native-image-picker:
@@ -671,6 +686,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-fs"
   RNGestureHandler:
     :path: "../node_modules/react-native-gesture-handler"
+  RNPermissions:
+    :path: "../node_modules/react-native-permissions"
   RNReanimated:
     :path: "../node_modules/react-native-reanimated"
   RNScreens:
@@ -715,6 +732,8 @@ SPEC CHECKSUMS:
   React-jsiexecutor: faca9c368233f59ed24601aca0185870466a96e9
   React-jsinspector: 194e32c6aab382d88713ad3dd0025c5f5c4ee072
   React-logger: cebf22b6cf43434e471dc561e5911b40ac01d289
+  react-native-blur: 69ecfe61d81b32ee7baae10f5d17aeb4e2594b10
+  react-native-geolocation: 1279fd4390e311ec3f2fc2878279934147fdd061
   react-native-get-random-values: 384787fd76976f5aec9465aff6fa9e9129af1e74
   react-native-image-picker: 5e076db26cd81660cfb6db5bcf517cfa12054d45
   react-native-maps: fa054512735831f232e822ee6bdb0afcdd88de4a
@@ -740,7 +759,8 @@ SPEC CHECKSUMS:
   RNCAsyncStorage: 014a78b2cc8cc107c9e92ee428dc0c1ac3223416
   RNCMaskedView: 090213d32d8b3bb83a4dcb7d12c18f0152591906
   RNFS: 4ac0f0ea233904cb798630b3c077808c06931688
-  RNGestureHandler: 7909c50383a18f0cb10ce1db7262b9a6da504c03
+  RNGestureHandler: 69d0a928253547ef857a7be4f453220b9c472e07
+  RNPermissions: a4c964f030841f35d918ab3248df9dec9db5f44d
   RNReanimated: 43675f1f0e704abe8ebf953fd79b00e66302cda2
   RNScreens: 3c5b9f4a9dcde752466854b6109b79c0e205dad3
   RNSVG: d00c8f91c3cbf6d476451313a18f04d220d4f396
@@ -749,6 +769,6 @@ SPEC CHECKSUMS:
   Yoga: b76f1acfda8212aa16b7e26bcce3983230c82603
   YogaKit: f782866e155069a2cca2517aafea43200b01fd5a
 
-PODFILE CHECKSUM: 2781f0ed8e6c2ddf4ad9617aabd695c88fa54a3f
+PODFILE CHECKSUM: 0289fcafbf7a98aa32e8c354928477bcaa3f377c
 
 COCOAPODS: 1.14.2

@@ -23,4 +23,43 @@ DriverService.deleteDriver = async data =>
 DriverService.reset_password = async id =>
   ApiClient.get(`${API_URL.DRIVER}/${id}/reset-password`);
 
+DriverService.startDelivery = async data =>
+  ApiClient.post(`${API_URL.ORDER}/${data.id}/startDelivery`, data);
+
+DriverService.completeDelivery = async data =>
+  ApiClient.post(`${API_URL.ORDER}/${data.id}/completeDelivery`, data);
+
+DriverService.driverRejected = async data =>
+  ApiClient.post(`${API_URL.ORDER}/${data.id}/driverRejected`, data);
+
+DriverService.driverAccepted = async data =>
+  ApiClient.post(`${API_URL.ORDER}/${data.id}/driverAccepted`, data);
+
+DriverService.assignToSelf = async data =>
+  ApiClient.post(`${API_URL.ORDER}/${data.id}/assignToSelf`, data);
+
+DriverService.assignDriver = async data =>
+  ApiClient.post(
+    `${API_URL.ORDER}/${data.id}/assignDriver/${data?.driver_id}`,
+    data,
+  );
+
+DriverService.orderDetails = async id =>
+  ApiClient.get(`${API_URL.ORDER}/${id}`);
+
+DriverService.driverOrders = async id =>
+  ApiClient.get(`${API_URL.ORDER}/driver`);
+
+DriverService.customerOrders = async id =>
+  ApiClient.get(`${API_URL.ORDER}/customer`);
+
+DriverService.sendDriverLocationCoords = async data =>
+  ApiClient.post(
+    `${API_URL.TRACKING}/trackOrder/${data?.id}`,
+    data?.locationData,
+  );
+
+DriverService.getDriverLocationCoords = async id =>
+  ApiClient.get(`${API_URL.TRACKING}/trackOrder/${id}`);
+
 export default DriverService;

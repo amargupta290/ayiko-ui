@@ -18,7 +18,7 @@ const CatalogNavigation = () => {
       />
       <Stack.Screen
         options={{
-          title: 'Create Catalog',
+          title: 'Manage Catalog',
         }}
         initialParams={{catalogData: null}}
         name="NewCatalogScreen"

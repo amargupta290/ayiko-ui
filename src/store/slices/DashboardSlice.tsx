@@ -17,6 +17,8 @@ export interface DashboardState {
   data: DataI | null;
   supplier: DataI | null;
   popularProducts: DataI | null;
+  deleteAddressRes: DataI | null;
+  addAddressRes: DataI | null;
 }
 
 export const initialState: DashboardState = {
@@ -26,6 +28,8 @@ export const initialState: DashboardState = {
   data: null,
   supplier: null,
   popularProducts: null,
+  deleteAddressRes: null,
+  addAddressRes: null,
 };
 
 export const catalogList = createAsyncThunk(
@@ -57,6 +61,33 @@ export const popularProductsList = createAsyncThunk(
   async (_, {rejectWithValue}) => {
     try {
       const response = await DashboardService.popularProductsList();
+      return response;
+    } catch (err) {
+      return rejectWithValue(err);
+    }
+  },
+);
+
+export const addAddresses = createAsyncThunk(
+  'dashboard/addAddresses',
+  async (id, {rejectWithValue}) => {
+    try {
+      // console.log('addAddresses Payload', id);
+      const response = await DashboardService.addAddresses(id);
+      // console.log('addAddresses response', response);
+      return response;
+    } catch (err) {
+      // console.log('addAddresses err', err);
+      return rejectWithValue(err);
+    }
+  },
+);
+
+export const deleteAddress = createAsyncThunk(
+  'dashboard/deleteAddress',
+  async (data, {rejectWithValue}) => {
+    try {
+      const response = await DashboardService.deleteAddress(data);
       return response;
     } catch (err) {
       return rejectWithValue(err);
@@ -123,6 +154,44 @@ export const dashboardSlice = createSlice({
     );
     builder.addCase(
       popularProductsList.rejected,
+      (state, action: PayloadAction<any>) => {
+        state.message = action.payload;
+        state.showMessage = true;
+        state.loading = false;
+      },
+    );
+
+    builder.addCase(addAddresses.pending, state => {
+      state.loading = true;
+    });
+    builder.addCase(
+      addAddresses.fulfilled,
+      (state, action: PayloadAction<any>) => {
+        state.loading = false;
+        state.addAddressRes = action.payload;
+      },
+    );
+    builder.addCase(
+      addAddresses.rejected,
+      (state, action: PayloadAction<any>) => {
+        state.message = action.payload;
+        state.showMessage = true;
+        state.loading = false;
+      },
+    );
+
+    builder.addCase(deleteAddress.pending, state => {
+      state.loading = true;
+    });
+    builder.addCase(
+      deleteAddress.fulfilled,
+      (state, action: PayloadAction<any>) => {
+        state.loading = false;
+        state.deleteAddressRes = action.payload;
+      },
+    );
+    builder.addCase(
+      deleteAddress.rejected,
       (state, action: PayloadAction<any>) => {
         state.message = action.payload;
         state.showMessage = true;

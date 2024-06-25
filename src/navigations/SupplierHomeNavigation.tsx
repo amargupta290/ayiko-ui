@@ -1,7 +1,7 @@
 import React from 'react';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {CongratulationScreen, OrderDetailsScreen} from 'screens';
-import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
+import {Image, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import {useTheme} from '@react-navigation/native';
 import {SVGProfilePic, SVGWaveIcon} from 'assets/image';
 import AddBusinessInfo from 'screens/AddBusinessInfo';
@@ -41,7 +41,7 @@ const SupplierHomeNavigation = () => {
             <View style={styles.headerLeft}>
               <SVGWaveIcon />
               <Text style={styles.headerTitleStyle}>
-                Hello {supplierData?.ownerName}
+                Hello {supplierData?.businessName}
               </Text>
             </View>
           ),
@@ -49,7 +49,15 @@ const SupplierHomeNavigation = () => {
           headerRight: () => (
             <TouchableOpacity
               onPress={() => navigation.navigate('UserProfileScreen')}>
-              <SVGProfilePic />
+              {/* <SVGProfilePic /> */}
+              <Image
+                source={require('../assets/image/profilePic.png')}
+                style={{
+                  resizeMode: 'cover',
+                  width: 50,
+                  height: 50,
+                }}
+              />
             </TouchableOpacity>
           ),
         })}

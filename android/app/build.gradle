@@ -78,7 +78,7 @@ android {
         applicationId "com.ayiko"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 4
+        versionCode 5
         versionName "1.0"
     }
     signingConfigs {
@@ -121,6 +121,7 @@ dependencies {
     // For WebP support, including animated WebP
     implementation 'com.facebook.fresco:animated-webp:2.+'
     implementation 'com.facebook.fresco:webpsupport:2.+' 
+    implementation("com.google.android.gms:play-services-location")
 
     debugImplementation("com.facebook.flipper:flipper:${FLIPPER_VERSION}")
     debugImplementation("com.facebook.flipper:flipper-network-plugin:${FLIPPER_VERSION}") {

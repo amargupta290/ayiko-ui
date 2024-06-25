@@ -35,6 +35,7 @@ const defaultProps = {
 };
 
 const FRadio = (props: FRadioInterface) => {
+  console.log('Props', props);
   const {colors, fonts} = useTheme();
   const styles = Styles({colors, fonts});
   return (

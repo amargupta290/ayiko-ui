@@ -1,7 +1,7 @@
 import {useTheme} from '@react-navigation/native';
-import {AppImages} from 'assets/image';
-import {Loader} from 'components';
-import React from 'react';
+import {AppImages, SVGAddDriver} from 'assets/image';
+import {ImageComp, Loader} from 'components';
+import React, {useEffect} from 'react';
 import {
   FlatList,
   Image,
@@ -13,10 +13,23 @@ import {
 } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
 import Popover from 'react-native-popover-view';
+import {useDispatch} from 'react-redux';
+import {getDrivers} from 'store/slices/DriverSlice';
+import {RootState} from 'store';
+import {useAppSelector} from 'hooks';
 
 const DriverScreen = ({navigation, route}: {navigation: any; route: any}) => {
   const {colors, fonts} = useTheme();
+  const dispatch = useDispatch();
   const styles = Styles({colors, fonts});
+
+  useEffect(() => {
+    dispatch(getDrivers());
+  }, [dispatch]);
+
+  const {drivers} = useAppSelector((state: RootState) => state.driver);
+
+  console.log('drivers', JSON.stringify(drivers, null, 2));
 
   const driverData = [
     {
@@ -58,15 +71,28 @@ const DriverScreen = ({navigation, route}: {navigation: any; route: any}) => {
   ];
   const renderItem = ({item, index}) => {
     return (
-      <TouchableOpacity
-        style={styles.card}
-        onPress={() => navigation.navigate('DriverDeliveryDetailScreen')}>
-        {/* <ImageComp source={{uri: item?.imageUrl}} imageStyle={styles.image} /> */}
+      <TouchableOpacity style={styles.card}>
+        <Image
+          source={
+            item?.imageUrl
+              ? {
+                  uri: item?.imageUrl,
+                }
+              : require('../assets/image/profilePic.png')
+          }
+          // imageStyle={styles.image}
+          style={{
+            resizeMode: 'cover',
+            width: 50,
+            height: 50,
+            borderRadius: 50,
+            borderColor: colors.primary,
+            borderWidth: 1,
+          }}
+        />
         <View style={styles.cardDescription}>
           <Text style={styles.title}>{item.name}</Text>
-          <Text style={styles.available}>
-            {item.available ? 'Available' : 'Not Available'}
-          </Text>
+          <Text style={styles.available}>{item.status}</Text>
         </View>
         <Popover
           from={
@@ -80,7 +106,7 @@ const DriverScreen = ({navigation, route}: {navigation: any; route: any}) => {
             <TouchableOpacity
               style={styles.popoverContent}
               onPress={() => {
-                navigation.navigate('NewCatalogScreen', {
+                navigation.navigate('ManageDriver', {
                   catalogData: item,
                 });
               }}>
@@ -104,11 +130,17 @@ const DriverScreen = ({navigation, route}: {navigation: any; route: any}) => {
   return (
     <SafeAreaView style={styles.safeArea}>
       {/* <Loader isLoading={isLoading} /> */}
-      <FlatList
-        style={styles.container}
-        data={driverData}
-        renderItem={renderItem}
-      />
+      {drivers && drivers.length > 0 ? (
+        <FlatList
+          style={styles.container}
+          data={drivers}
+          renderItem={renderItem}
+        />
+      ) : (
+        <TouchableOpacity onPress={() => navigation.navigate('ManageDriver')}>
+          <SVGAddDriver width={'100%'} />
+        </TouchableOpacity>
+      )}
       <TouchableOpacity
         activeOpacity={0.7}
         onPress={() => navigation.navigate('ManageDriver')}

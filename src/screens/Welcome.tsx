@@ -1,5 +1,5 @@
 import React, {useEffect} from 'react';
-import {StyleSheet, Text, View} from 'react-native';
+import {Linking, StyleSheet, Text, View} from 'react-native';
 import {useTheme} from '@react-navigation/native';
 
 import {SVGLoginLogo} from 'assets/image';
@@ -9,6 +9,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const WelcomeScreen = ({navigation}: {navigation: any}) => {
   const {colors, fonts} = useTheme();
   const styles = Styles({colors, fonts});
+  const termsAndCondition = 'https://ayiko.net/TermsAndCondition.html';
+  const privacyPolicy = 'https://ayiko.net/privacyPolicy.html';
+  const aboutUs = 'https://ayiko.net/aboutUs.html';
 
   useEffect(() => {
     const setSplashOpened = async () => {
@@ -28,8 +31,10 @@ const WelcomeScreen = ({navigation}: {navigation: any}) => {
           Welcome to the world’s most imaginative marketplace
         </Text>
         <FButton
-          label="Login as a customer"
-          buttonClick={() => navigation.navigate('Login', {role: 'customer'})}
+          label="Continue as a customer"
+          buttonClick={() =>
+            navigation.navigate('CustomerHomeNavigation', {role: 'customer'})
+          }
           containerStyle={styles.btnContainerStyle}
         />
         <FButton
@@ -53,11 +58,28 @@ const WelcomeScreen = ({navigation}: {navigation: any}) => {
         <Text style={styles.account}>
           Don’t have an account?{' '}
           <Text
-            style={styles.signUp}
+            style={styles.linkText}
             onPress={() => navigation.navigate('SignUpWelcome')}>
             Sign Up
           </Text>
         </Text>
+        <View style={styles.bottomText}>
+          <Text style={styles.signUp} onPress={() => Linking.openURL(aboutUs)}>
+            About Us
+          </Text>
+          <Text> | </Text>
+          <Text
+            style={styles.signUp}
+            onPress={() => Linking.openURL(privacyPolicy)}>
+            Privacy & policy
+          </Text>
+          <Text> | </Text>
+          <Text
+            style={styles.signUp}
+            onPress={() => Linking.openURL(termsAndCondition)}>
+            Terms & Condition
+          </Text>
+        </View>
       </View>
     </View>
   );
@@ -96,8 +118,16 @@ const Styles = ({colors, fonts}: any) =>
       marginTop: 24,
     },
     signUp: {
+      ...fonts.subHeading,
+      color: colors.primary,
+      fontWeight: 'bold',
+      fontSize: 12,
+      textDecorationLine: 'underline',
+    },
+    linkText: {
       color: colors.primary,
       fontWeight: 'bold',
       textDecorationLine: 'underline',
     },
+    bottomText: {flexDirection: 'row', top: 10, justifyContent: 'center'},
   });

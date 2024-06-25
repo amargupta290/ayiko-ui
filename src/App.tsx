@@ -6,8 +6,9 @@
  */
 
 import {NavigationContainer, DefaultTheme} from '@react-navigation/native';
+import {useAppSelector} from 'hooks';
 import {AppNavigation} from 'navigations';
-import React from 'react';
+import React, {useEffect} from 'react';
 import {
   Platform,
   SafeAreaView,
@@ -20,8 +21,13 @@ import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 
 import {Colors} from 'react-native/Libraries/NewAppScreen';
-import {Provider} from 'react-redux';
-import {store} from 'store';
+import {Provider, useDispatch} from 'react-redux';
+import {RootState, store} from 'store';
+import {
+  getCustomerByToken,
+  getDriverByToken,
+  getSupplierByToken,
+} from 'store/slices/authSlice';
 
 function App(): JSX.Element {
   const isDarkMode = useColorScheme() === 'dark';
@@ -129,24 +135,28 @@ function App(): JSX.Element {
   );
 
   return (
-    <SafeAreaProvider>
-      <Provider store={store}>
-        {/* <StatusBar translucent backgroundColor="transparent" /> */}
-        {/* <SafeAreaView style={backgroundStyle}> */}
-        {/* <StatusBar
+    <GestureHandlerRootView style={{flex: 1}}>
+      {/* Your app components */}
+
+      <SafeAreaProvider>
+        <Provider store={store}>
+          {/* <StatusBar translucent backgroundColor="transparent" /> */}
+          {/* <SafeAreaView style={backgroundStyle}> */}
+          {/* <StatusBar
           barStyle={isDarkMode ? 'light-content' : 'dark-content'}
           backgroundColor={backgroundStyle.backgroundColor}
         /> */}
-        {/* <MyStatusBar
+          {/* <MyStatusBar
           backgroundColor={colors.primary}
           barStyle="light-content"
         /> */}
-        <NavigationContainer theme={MyTheme}>
-          <AppNavigation />
-        </NavigationContainer>
-        {/* </SafeAreaView> */}
-      </Provider>
-    </SafeAreaProvider>
+          <NavigationContainer theme={MyTheme}>
+            <AppNavigation />
+          </NavigationContainer>
+          {/* </SafeAreaView> */}
+        </Provider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
 

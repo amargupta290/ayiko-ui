@@ -19,6 +19,7 @@ export interface DashboardState {
   supplierProductsData: DataI | null;
   supplierApprovalRequestData: DataI | null;
   updateSupplierData: DataI | null;
+  supplierOrdersData: DataI | null | [];
 }
 
 export const initialState: DashboardState = {
@@ -30,6 +31,7 @@ export const initialState: DashboardState = {
   supplierProductsData: null,
   supplierApprovalRequestData: null,
   updateSupplierData: null,
+  supplierOrdersData: [],
 };
 
 export const supplierDetails = createAsyncThunk(
@@ -53,6 +55,19 @@ export const supplierProducts = createAsyncThunk(
       return response;
     } catch (err) {
       console.log('supplier/products', err);
+      return rejectWithValue(err);
+    }
+  },
+);
+
+export const supplierOrders = createAsyncThunk(
+  'supplier/Orders',
+  async (id, {rejectWithValue}) => {
+    try {
+      const response = await SupplierService.supplierOrders();
+      return response;
+    } catch (err) {
+      console.log('supplier/Orders', err);
       return rejectWithValue(err);
     }
   },
@@ -130,6 +145,27 @@ export const supplierSlice = createSlice({
         state.loading = false;
       },
     );
+
+    //supplierOrders
+    builder.addCase(supplierOrders.pending, state => {
+      state.loading = true;
+    });
+    builder.addCase(
+      supplierOrders.fulfilled,
+      (state, action: PayloadAction<any>) => {
+        state.loading = false;
+        state.supplierOrdersData = action.payload;
+      },
+    );
+    builder.addCase(
+      supplierOrders.rejected,
+      (state, action: PayloadAction<any>) => {
+        state.message = action.payload;
+        state.showMessage = true;
+        state.loading = false;
+      },
+    );
+
     //supplierApprovalRequest
     builder.addCase(supplierApprovalRequest.pending, state => {
       state.loading = true;

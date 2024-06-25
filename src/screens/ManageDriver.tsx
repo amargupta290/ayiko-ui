@@ -30,7 +30,7 @@ import {S3} from 'aws-sdk';
 import RNFS from 'react-native-fs';
 import {RootState} from 'store';
 import {IInputs} from 'utils/interface';
-import {updateDriver} from 'store/slices/DriverSlice';
+import {getDrivers, updateDriver} from 'store/slices/DriverSlice';
 import {driverSignup} from 'store/slices/authSlice';
 
 const ManageDriverScreen = ({
@@ -51,7 +51,7 @@ const ManageDriverScreen = ({
       placeholder: '',
       value: '',
       error: false,
-      mandatory: null,
+      mandatory: 1,
       errorText: 'Please enter valid name',
       key: 'name',
       fixLabel: true,
@@ -63,7 +63,7 @@ const ManageDriverScreen = ({
       placeholder: '',
       value: '',
       error: false,
-      mandatory: null,
+      mandatory: 1,
       errorText: 'Please enter valid email',
       key: 'email',
       fixLabel: true,
@@ -106,7 +106,7 @@ const ManageDriverScreen = ({
       type: 'input',
     },
     {
-      order: 2,
+      order: 5,
       label: 'Active Driver',
       placeholder: '',
       value: true,
@@ -133,26 +133,13 @@ const ManageDriverScreen = ({
 
   useEffect(() => {
     if (catalogData) {
-      const inputVal = input;
+      let inputVal = input;
       inputVal[0].value = catalogData?.name;
-      inputVal[1].value = catalogData?.category;
-      const items = inputVal[1].items;
-      if (items) {
-        let updatedItems = items.map((data, index) =>
-          data.title === catalogData?.category
-            ? {...data, value: true}
-            : {...data, value: false},
-        );
-        // items[itemIndex].value = !items[itemIndex].value;
-        inputVal[1].items = updatedItems;
-      }
-      let imgUrls = catalogData?.imageUrl?.map((item: any) => {
-        return {url: item};
-      });
-      inputVal[2].value = catalogData?.available;
-      inputVal[3].value = catalogData?.unitPrice;
-      inputVal[4].value = catalogData?.description;
-      inputVal[5].value = imgUrls;
+      inputVal[1].value = catalogData?.email;
+      inputVal[2].value = catalogData?.phone;
+      inputVal[3].value = catalogData?.vehicleNumber;
+      inputVal[5].value = catalogData?.active;
+      delete inputVal[4]; // remove file upload field when editing data
       setInput(() => [...inputVal]);
     }
   }, [catalogData]);
@@ -227,7 +214,7 @@ const ManageDriverScreen = ({
   };
 
   const renderItem: ListRenderItem<IInputs> = ({item, index}) => {
-    if (item.type === 'input') {
+    if (item?.type === 'input') {
       return (
         <FTextInput
           {...item}
@@ -235,7 +222,7 @@ const ManageDriverScreen = ({
           onTextChange={text => onChangeText(index, text)}
         />
       );
-    } else if (item.type === 'file') {
+    } else if (item?.type === 'file') {
       return (
         <>
           <FilePicker
@@ -277,7 +264,7 @@ const ManageDriverScreen = ({
           )}
         </>
       );
-    } else if (item.type === 'switch') {
+    } else if (item?.type === 'switch') {
       return <FSwitch {...item} switchClick={() => onSwitchClick(index)} />;
     } else {
       null;
@@ -285,22 +272,24 @@ const ManageDriverScreen = ({
   };
 
   const saveClick = () => {
+    console.log('input saveClick', JSON.stringify(input, null, 2));
     const inputValid = globalHelpers.validation(input);
     setInput(() => [...inputValid]);
-    console.log('input saveClick', JSON.stringify(input, null, 2));
     if (inputValid.valid) {
       const payload = {
         name: input[0].value,
         email: input[1].value,
-        mobile: input[2].value,
-        vehicle: input[3].value,
-        password: input[4].value,
-        // quantity: 1,
-        // imageUrl: input[5].value?.map((item: {url: any}) => item?.url),
+        phone: input[2].value,
+        vehicleNumber: input[3].value,
+
+        status: 0,
+        active: input[5].value,
       };
       console.log('input saveClick', JSON.stringify(payload, null, 2));
       if (catalogData?.id) {
         payload.id = catalogData.id;
+      } else {
+        payload.password = input[4].value;
       }
 
       dispatch(
@@ -309,7 +298,7 @@ const ManageDriverScreen = ({
         console.log('data?.payload', JSON.stringify(data, null, 2));
         if (data?.payload) {
           setAlertShow(prevAlertShow => !prevAlertShow);
-          // navigation.navigate('Congratulation', {fromPage: 'singIn'});
+          dispatch(getDrivers());
         } else {
           Alert.alert('Error', data?.payload?.messageDescription, [
             {text: 'OK', onPress: () => console.log('OK Pressed')},
@@ -335,8 +324,8 @@ const ManageDriverScreen = ({
           title="Successful!!"
           subTitle={
             catalogData?.id
-              ? 'Your catalog updated successfully.'
-              : 'Your catalog created successfully.'
+              ? 'Driver updated successfully.'
+              : 'Driver created successfully.'
           }
           okClick={() => {
             setAlertShow(prevAlertShow => !prevAlertShow);

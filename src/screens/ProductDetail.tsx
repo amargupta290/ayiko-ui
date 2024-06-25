@@ -10,13 +10,14 @@ import {
   Dimensions,
   FlatList,
   Pressable,
-  Image,
+  Modal,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import {useTheme} from '@react-navigation/native';
 import Feather from 'react-native-vector-icons/Feather';
 import {useAppDispatch, useAppSelector} from 'hooks';
 
-import {AppImages, SVGHeartIcon, SVGSearch} from 'assets/image';
+import {AppImages, SVGHeartIcon, SVGOutOfStock, SVGSearch} from 'assets/image';
 import {RootState} from 'store';
 import {catalogList, supplierList} from 'store/slices/DashboardSlice';
 import {FButton, ImageComp, Loader} from 'components';
@@ -35,6 +36,7 @@ const ProductDetail = ({navigation, route}: {navigation: any; route: any}) => {
   const {product, product_id, supplier_id} = route.params;
   const [quantity, setQuantity] = useState(0);
   const [cart, setCart] = useState(null);
+  const [paymentModal, setPaymentModal] = useState(false);
   const isLoading = useAppSelector(
     (state: RootState) => state.dashboard.loading,
   );
@@ -79,7 +81,7 @@ const ProductDetail = ({navigation, route}: {navigation: any; route: any}) => {
           <Pressable onPress={() => navigation.goBack()}>
             <Feather name="arrow-left" size={25} color={colors.white} />
           </Pressable>
-          <View style={styles.searchWrapper}>
+          {/* <View style={styles.searchWrapper}>
             <SVGSearch />
             <TextInput
               placeholder="Search for items or supplier"
@@ -87,7 +89,7 @@ const ProductDetail = ({navigation, route}: {navigation: any; route: any}) => {
             />
           </View>
 
-          <Feather name="bell" size={32} color={colors.white} />
+          <Feather name="bell" size={32} color={colors.white} /> */}
         </View>
       </View>
     );
@@ -101,7 +103,7 @@ const ProductDetail = ({navigation, route}: {navigation: any; route: any}) => {
           <ImageComp
             source={
               product?.imageUrl?.length
-                ? {uri: product?.imageUrl[0]}
+                ? {uri: product?.imageUrl[0]?.imageUrl}
                 : AppImages.noImg.source
             }
             imageStyle={{
@@ -125,13 +127,25 @@ const ProductDetail = ({navigation, route}: {navigation: any; route: any}) => {
           </View>
           <View style={styles.orderItemQty}>
             <TouchableOpacity
-              onPress={() => setCarItem(product, null, quantity, setQuantity)}
+              onPress={() => {
+                if (product?.available) {
+                  setCarItem(product, null, quantity, setQuantity);
+                } else {
+                  setPaymentModal(true);
+                }
+              }}
               disabled={parseInt(quantity) <= 0}>
               <Feather name="minus" size={16} color={colors.black} />
             </TouchableOpacity>
             <Text style={styles.quantity}> {quantity ?? 0}</Text>
             <TouchableOpacity
-              onPress={() => setCarItem(product, 'add', quantity, setQuantity)}>
+              onPress={() => {
+                if (product?.available) {
+                  setCarItem(product, 'add', quantity, setQuantity);
+                } else {
+                  setPaymentModal(true);
+                }
+              }}>
               <Feather name="plus" size={16} color={colors.black} />
             </TouchableOpacity>
           </View>
@@ -205,7 +219,7 @@ const ProductDetail = ({navigation, route}: {navigation: any; route: any}) => {
                     <ImageComp
                       source={
                         item?.imageUrl?.length
-                          ? {uri: item?.imageUrl[0]}
+                          ? {uri: item?.imageUrl[0]?.imageUrl}
                           : AppImages.noImg.source
                       }
                       imageStyle={{
@@ -228,25 +242,57 @@ const ProductDetail = ({navigation, route}: {navigation: any; route: any}) => {
     );
   };
 
+  const outOfStockModal = () => {
+    return (
+      <>
+        <View style={styles.centeredView}>
+          <Modal
+            animationType="slide"
+            transparent={true}
+            visible={paymentModal}
+            onRequestClose={() => {
+              setPaymentModal(false);
+            }}>
+            <TouchableWithoutFeedback onPress={() => setPaymentModal(false)}>
+              <View style={styles.centeredView}>
+                {/* <View style={styles.modalView}> */}
+                <SVGOutOfStock width={'80%'} />
+                {/* </View> */}
+              </View>
+            </TouchableWithoutFeedback>
+          </Modal>
+        </View>
+      </>
+    );
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
-      <Loader isLoading={isLoading} />
-      {headerComponent()}
-      <ScrollView style={styles.container}>
-        {renderProductDetailComp()}
-        <View style={styles.breaker}></View>
-        {renderOtherItems()}
-      </ScrollView>
-      <FButton
-        label="Add to Cart"
-        buttonClick={async () => {
-          quantity <= 0 &&
-            (await setCarItem(product, 'add', quantity, setQuantity));
+      <ScrollView>
+        <Loader isLoading={isLoading} />
+        {headerComponent()}
+        <ScrollView style={styles.container}>
+          {renderProductDetailComp()}
+          <View style={styles.breaker}></View>
+          {renderOtherItems()}
+        </ScrollView>
+        <FButton
+          label="Add to Cart"
+          buttonClick={async () => {
+            if (product?.available) {
+              quantity <= 0 &&
+                (await setCarItem(product, 'add', quantity, setQuantity));
 
-          navigation.navigate('Cart');
-        }}
-        containerStyle={styles.footerBtnContainer}
-      />
+              navigation.navigate('Cart');
+            } else {
+              setPaymentModal(true);
+            }
+          }}
+          containerStyle={styles.footerBtnContainer}
+        />
+
+        {outOfStockModal()}
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -532,5 +578,26 @@ const Styles = ({colors, fonts}: any) =>
     },
     nearBySupplierContainer: {
       flexDirection: 'row',
+    },
+    centeredView: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      // marginTop: 22,
+    },
+    modalView: {
+      margin: 20,
+      backgroundColor: 'white',
+      borderRadius: 20,
+      padding: 35,
+      alignItems: 'center',
+      shadowColor: '#000',
+      shadowOffset: {
+        width: 0,
+        height: 2,
+      },
+      shadowOpacity: 0.25,
+      shadowRadius: 4,
+      elevation: 5,
     },
   });

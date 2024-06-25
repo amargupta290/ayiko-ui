@@ -1,5 +1,5 @@
 import React from 'react';
-import {StyleSheet, Text, View} from 'react-native';
+import {Linking, StyleSheet, Text, View} from 'react-native';
 import {useTheme} from '@react-navigation/native';
 
 import {SVGLoginLogo} from 'assets/image';
@@ -8,6 +8,9 @@ import {FButton} from 'components';
 const SignUpWelcomeScreen = ({navigation}: {navigation: any}) => {
   const {colors, fonts} = useTheme();
   const styles = Styles({colors, fonts});
+  const termsAndCondition = 'https://ayiko.net/TermsAndCondition.html';
+  const privacyPolicy = 'https://ayiko.net/privacyPolicy.html';
+  const aboutUs = 'https://ayiko.net/aboutUs.html';
   return (
     <View style={styles.container}>
       <SVGLoginLogo />
@@ -35,7 +38,7 @@ const SignUpWelcomeScreen = ({navigation}: {navigation: any}) => {
         <Text style={styles.account}>
           Already have an account?{' '}
           <Text
-            style={styles.signUp}
+            style={styles.linkText}
             onPress={() => {
               // navigation.goBack();
               navigation.reset({
@@ -46,6 +49,23 @@ const SignUpWelcomeScreen = ({navigation}: {navigation: any}) => {
             Login
           </Text>
         </Text>
+        <View style={styles.bottomText}>
+          <Text style={styles.signUp} onPress={() => Linking.openURL(aboutUs)}>
+            About Us
+          </Text>
+          <Text> | </Text>
+          <Text
+            style={styles.signUp}
+            onPress={() => Linking.openURL(privacyPolicy)}>
+            Privacy & policy
+          </Text>
+          <Text> | </Text>
+          <Text
+            style={styles.signUp}
+            onPress={() => Linking.openURL(termsAndCondition)}>
+            Terms & Condition
+          </Text>
+        </View>
       </View>
     </View>
   );
@@ -84,8 +104,16 @@ const Styles = ({colors, fonts}: any) =>
       marginTop: 24,
     },
     signUp: {
+      ...fonts.subHeading,
+      color: colors.primary,
+      fontWeight: 'bold',
+      fontSize: 12,
+      textDecorationLine: 'underline',
+    },
+    linkText: {
       color: colors.primary,
       fontWeight: 'bold',
       textDecorationLine: 'underline',
     },
+    bottomText: {flexDirection: 'row', top: 10, justifyContent: 'center'},
   });
